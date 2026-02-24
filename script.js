@@ -39,6 +39,19 @@ function loadState() {
       // Initialize timeouts if missing (backward compatibility)
       if (!state.home.timeouts) state.home.timeouts = [false,false,false,false,false];
       if (!state.away.timeouts) state.away.timeouts = [false,false,false,false,false];
+      // Initialize new stat fields for existing players (backward compatibility)
+      ['home', 'away'].forEach(function(team) {
+        if (state[team].players) {
+          state[team].players.forEach(function(p) {
+            if (p.missft === undefined) p.missft = 0;
+            if (p.miss2 === undefined) p.miss2 = 0;
+            if (p.miss3 === undefined) p.miss3 = 0;
+            if (p.oreb === undefined) p.oreb = 0;
+            if (p.dreb === undefined) p.dreb = 0;
+            if (p.to === undefined) p.to = 0;
+          });
+        }
+      });
     }
   } catch(e) {}
 }
@@ -282,6 +295,8 @@ function closeModal() {
 
 function newGame() {
   closeModal();
+
+  // Reset scores and game state
   state.home.score = 0;
   state.away.score = 0;
   state.home.timeouts = [false,false,false,false,false];
@@ -289,18 +304,12 @@ function newGame() {
   state.periodIndex = 0;
   state.history = [];
   state.activePlayer = null;
-  state.home.players.forEach(function(p) {
-    p.pts = 0; p.pts2 = 0; p.pts3 = 0; p.ft = 0;
-    p.miss2 = 0; p.miss3 = 0; p.missft = 0;
-    p.ast = 0; p.oreb = 0; p.dreb = 0;
-    p.stl = 0; p.blk = 0; p.to = 0; p.fls = 0;
-  });
-  state.away.players.forEach(function(p) {
-    p.pts = 0; p.pts2 = 0; p.pts3 = 0; p.ft = 0;
-    p.miss2 = 0; p.miss3 = 0; p.missft = 0;
-    p.ast = 0; p.oreb = 0; p.dreb = 0;
-    p.stl = 0; p.blk = 0; p.to = 0; p.fls = 0;
-  });
+
+  // Clear all players
+  state.home.players = [];
+  state.away.players = [];
+
+  // Update all UI elements
   updateScores();
   updatePeriod();
   renderPlayers('home');
@@ -309,8 +318,11 @@ function newGame() {
   updateActiveIndicator();
   renderTimeouts('home');
   renderTimeouts('away');
+
+  // Save the reset state
   saveState();
-  showToast('New game started');
+
+  showToast('New game started — all data cleared');
 }
 
 /* ── SCORES ── */
