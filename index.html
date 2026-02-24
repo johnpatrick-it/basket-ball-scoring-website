@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Basketball Scorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <!-- Scoreboard -->
+  <div class="scoreboard">
+    <div class="scoreboard-inner">
+      <div class="team-score">
+        <input type="text" class="team-name" id="homeName" value="HOME" maxlength="16" spellcheck="false" aria-label="Home team name">
+        <div class="score-value" id="homeScore">0</div>
+      </div>
+      <div class="center-info">
+        <div class="period-label" id="periodLabel">Q1</div>
+        <div class="vs-divider">VS</div>
+        <div class="period-controls">
+          <button class="period-btn" onclick="prevPeriod()" aria-label="Previous period">&larr; Prev</button>
+          <button class="period-btn" onclick="nextPeriod()" aria-label="Next period">Next &rarr;</button>
+        </div>
+      </div>
+      <div class="team-score">
+        <input type="text" class="team-name" id="awayName" value="AWAY" maxlength="16" spellcheck="false" aria-label="Away team name">
+        <div class="score-value" id="awayScore">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Team Panels -->
+  <div class="main-layout">
+    <div class="team-panel" id="homePanel">
+      <div class="panel-header">
+        <div class="panel-title" id="homePanelTitle">HOME ROSTER</div>
+      </div>
+      <div class="add-player-row">
+        <input type="text" class="input-name" id="homePlayerName" placeholder="Player name" maxlength="24">
+        <input type="text" class="input-number" id="homePlayerNum" placeholder="#" maxlength="3">
+        <button class="btn-add" onclick="addPlayer('home')">Add</button>
+      </div>
+      <div class="player-list" id="homePlayerList"></div>
+    </div>
+    <div class="team-panel" id="awayPanel">
+      <div class="panel-header">
+        <div class="panel-title" id="awayPanelTitle">AWAY ROSTER</div>
+      </div>
+      <div class="add-player-row">
+        <input type="text" class="input-name" id="awayPlayerName" placeholder="Player name" maxlength="24">
+        <input type="text" class="input-number" id="awayPlayerNum" placeholder="#" maxlength="3">
+        <button class="btn-add" onclick="addPlayer('away')">Add</button>
+      </div>
+      <div class="player-list" id="awayPlayerList"></div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions-section">
+    <div class="actions-title">Actions</div>
+    <div class="active-player-indicator" id="activeIndicator">
+      Selected: <strong id="activePlayerDisplay"></strong>
+    </div>
+    <div class="no-player-warning" id="noPlayerWarning">Select a player from a roster above to record stats</div>
+    <div class="action-grid">
+      <button class="action-btn scoring" onclick="recordAction('pts2')"><span class="btn-icon">2</span>2-Pointer</button>
+      <button class="action-btn scoring" onclick="recordAction('pts3')"><span class="btn-icon">3</span>3-Pointer</button>
+      <button class="action-btn scoring" onclick="recordAction('ft')"><span class="btn-icon">1</span>Free Throw</button>
+      <button class="action-btn" onclick="recordAction('ast')"><span class="btn-icon">A</span>Assist</button>
+      <button class="action-btn" onclick="recordAction('reb')"><span class="btn-icon">R</span>Rebound</button>
+      <button class="action-btn" onclick="recordAction('stl')"><span class="btn-icon">S</span>Steal</button>
+      <button class="action-btn" onclick="recordAction('blk')"><span class="btn-icon">B</span>Block</button>
+      <button class="action-btn" onclick="recordAction('fls')"><span class="btn-icon">F</span>Foul</button>
+      <button class="action-btn undo-btn" onclick="undoAction()"><span class="btn-icon">&larr;</span>Undo</button>
+      <button class="action-btn new-game-btn" onclick="confirmNewGame()"><span class="btn-icon">&times;</span>New Game</button>
+      <button class="action-btn export-btn" onclick="exportCSV()"><span class="btn-icon">&darr;</span>Export CSV</button>
+      <button class="action-btn export-btn" onclick="exportPDF()"><span class="btn-icon">&#9113;</span>Export PDF</button>
+    </div>
+  </div>
+
+  <!-- Stats Tables -->
+  <div class="stats-section">
+    <div class="stats-header">
+      <div class="stats-title">Player Stats</div>
+      <div class="stats-toggle">
+        <button class="active" onclick="showStats('home',this)" id="statsHomeBtn">Home</button>
+        <button onclick="showStats('away',this)" id="statsAwayBtn">Away</button>
+        <button onclick="showTutorial()" aria-label="Show tutorial" title="Show tutorial">?</button>
+      </div>
+    </div>
+    <table class="stats-table">
+      <thead>
+        <tr>
+          <th>Player</th><th>#</th><th>PTS</th><th>2PM</th><th>3PM</th><th>FT</th><th>AST</th><th>REB</th><th>STL</th><th>BLK</th><th>FLS</th>
+        </tr>
+      </thead>
+      <tbody id="statsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box">
+    <h3>New Game</h3>
+    <p>Reset all scores and stats? Rosters will be kept.</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm" onclick="newGame()">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tutorial Spotlight -->
+<div class="tutorial-backdrop" id="tutorialBackdrop">
+  <div class="spotlight-hole" id="spotlightHole"></div>
+</div>
+<div class="tutorial-tooltip" id="tutorialTooltip">
+  <div class="tooltip-arrow" id="tooltipArrow"></div>
+  <div class="tutorial-progress" id="tutorialDots"></div>
+  <h3 class="tooltip-title" id="tooltipTitle"></h3>
+  <p class="tooltip-text" id="tooltipText"></p>
+  <div class="tooltip-tip" id="tooltipTip"></div>
+  <div class="tutorial-nav" id="tutorialNav"></div>
+</div>
+
+<!-- Help Button -->
+<button class="help-fab" onclick="showTutorial()" aria-label="Replay tutorial" title="Replay tutorial">?</button>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>

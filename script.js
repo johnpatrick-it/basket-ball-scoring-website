@@ -1,0 +1,736 @@
+/* ── STATE ── */
+var STORAGE_KEY = 'bball_scorer_v1';
+var TUTORIAL_KEY = 'bball_tutorial_seen';
+var PERIODS = ['Q1','Q2','Q3','Q4'];
+
+var state = {
+  homeName: 'HOME',
+  awayName: 'AWAY',
+  periodIndex: 0,
+  overtimeCount: 0,
+  home: { players: [], score: 0 },
+  away: { players: [], score: 0 },
+  history: [],
+  activePlayer: null,
+  statsView: 'home'
+};
+
+function makePlayer(name, number) {
+  return { name: name, number: number, pts: 0, pts2: 0, pts3: 0, ft: 0, ast: 0, reb: 0, stl: 0, blk: 0, fls: 0 };
+}
+
+/* ── PERSISTENCE ── */
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+function loadState() {
+  try {
+    var saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      var parsed = JSON.parse(saved);
+      for (var k in parsed) { if (parsed.hasOwnProperty(k)) state[k] = parsed[k]; }
+    }
+  } catch(e) {}
+}
+
+/* ── PERIOD ── */
+function getPeriodLabel() {
+  if (state.periodIndex < 4) return PERIODS[state.periodIndex];
+  return 'OT' + (state.periodIndex - 3);
+}
+
+function nextPeriod() {
+  state.periodIndex++;
+  updatePeriod();
+  saveState();
+}
+
+function prevPeriod() {
+  if (state.periodIndex > 0) {
+    state.periodIndex--;
+    updatePeriod();
+    saveState();
+  }
+}
+
+function updatePeriod() {
+  document.getElementById('periodLabel').textContent = getPeriodLabel();
+}
+
+/* ── TEAM NAMES ── */
+function initTeamNames() {
+  var homeInput = document.getElementById('homeName');
+  var awayInput = document.getElementById('awayName');
+  homeInput.value = state.homeName;
+  awayInput.value = state.awayName;
+  homeInput.addEventListener('input', function() {
+    state.homeName = homeInput.value || 'HOME';
+    document.getElementById('homePanelTitle').textContent = state.homeName + ' ROSTER';
+    document.getElementById('statsHomeBtn').textContent = state.homeName;
+    saveState();
+  });
+  awayInput.addEventListener('input', function() {
+    state.awayName = awayInput.value || 'AWAY';
+    document.getElementById('awayPanelTitle').textContent = state.awayName + ' ROSTER';
+    document.getElementById('statsAwayBtn').textContent = state.awayName;
+    saveState();
+  });
+}
+
+/* ── PLAYERS ── */
+function addPlayer(team) {
+  var nameInput = document.getElementById(team + 'PlayerName');
+  var numInput = document.getElementById(team + 'PlayerNum');
+  var name = nameInput.value.trim();
+  var num = numInput.value.trim();
+  if (!name) { nameInput.focus(); return; }
+  state[team].players.push(makePlayer(name, num || '0'));
+  nameInput.value = '';
+  numInput.value = '';
+  nameInput.focus();
+  renderPlayers(team);
+  renderStats();
+  saveState();
+}
+
+function removePlayer(team, index) {
+  if (state.activePlayer && state.activePlayer.team === team && state.activePlayer.index === index) {
+    state.activePlayer = null;
+  } else if (state.activePlayer && state.activePlayer.team === team && state.activePlayer.index > index) {
+    state.activePlayer.index--;
+  }
+  state[team].players.splice(index, 1);
+  renderPlayers(team);
+  renderStats();
+  updateActiveIndicator();
+  saveState();
+}
+
+function selectPlayer(team, index) {
+  if (state.activePlayer && state.activePlayer.team === team && state.activePlayer.index === index) {
+    state.activePlayer = null;
+  } else {
+    state.activePlayer = { team: team, index: index };
+  }
+  renderPlayers('home');
+  renderPlayers('away');
+  updateActiveIndicator();
+  saveState();
+}
+
+function renderPlayers(team) {
+  var list = document.getElementById(team + 'PlayerList');
+  list.innerHTML = '';
+  state[team].players.forEach(function(p, i) {
+    var isActive = state.activePlayer && state.activePlayer.team === team && state.activePlayer.index === i;
+    var div = document.createElement('div');
+    div.className = 'player-item' + (isActive ? ' active' : '');
+    div.onclick = function(e) {
+      if (e.target.classList.contains('btn-remove')) return;
+      selectPlayer(team, i);
+    };
+    div.innerHTML =
+      '<span class="player-jersey">' + esc(p.number) + '</span>' +
+      '<span class="player-name">' + esc(p.name) + '</span>' +
+      '<span class="player-pts">' + p.pts + '<span>PTS</span></span>' +
+      '<button class="btn-remove" onclick="event.stopPropagation();removePlayer(\'' + team + '\',' + i + ')" aria-label="Remove player">&times;</button>';
+    list.appendChild(div);
+  });
+}
+
+function updateActiveIndicator() {
+  var indicator = document.getElementById('activeIndicator');
+  var warning = document.getElementById('noPlayerWarning');
+  if (state.activePlayer) {
+    var p = state[state.activePlayer.team].players[state.activePlayer.index];
+    if (p) {
+      var teamLabel = state.activePlayer.team === 'home' ? state.homeName : state.awayName;
+      document.getElementById('activePlayerDisplay').textContent = '#' + p.number + ' ' + p.name + ' (' + teamLabel + ')';
+      indicator.classList.add('show');
+      warning.style.display = 'none';
+    } else {
+      state.activePlayer = null;
+      indicator.classList.remove('show');
+      warning.style.display = '';
+    }
+  } else {
+    indicator.classList.remove('show');
+    warning.style.display = '';
+  }
+}
+
+/* ── ACTIONS ── */
+function recordAction(type) {
+  if (!state.activePlayer) {
+    showToast('Select a player first');
+    return;
+  }
+  var team = state.activePlayer.team;
+  var index = state.activePlayer.index;
+  var player = state[team].players[index];
+  if (!player) return;
+
+  var action = { team: team, index: index, type: type, timestamp: Date.now() };
+  var points = 0;
+
+  switch (type) {
+    case 'pts2': player.pts2++; player.pts += 2; points = 2; break;
+    case 'pts3': player.pts3++; player.pts += 3; points = 3; break;
+    case 'ft':   player.ft++;  player.pts += 1; points = 1; break;
+    case 'ast':  player.ast++; break;
+    case 'reb':  player.reb++; break;
+    case 'stl':  player.stl++; break;
+    case 'blk':  player.blk++; break;
+    case 'fls':  player.fls++; break;
+  }
+
+  if (points > 0) {
+    state[team].score += points;
+    action.points = points;
+    flashScore(team);
+  }
+
+  state.history.push(action);
+  updateScores();
+  renderPlayers(team);
+  renderStats();
+  saveState();
+
+  var labels = { pts2: '+2 pts', pts3: '+3 pts', ft: '+1 FT', ast: '+1 ast', reb: '+1 reb', stl: '+1 stl', blk: '+1 blk', fls: '+1 foul' };
+  showToast(labels[type] + ' \u2014 #' + player.number + ' ' + player.name);
+}
+
+function undoAction() {
+  if (state.history.length === 0) {
+    showToast('Nothing to undo');
+    return;
+  }
+  var action = state.history.pop();
+  var player = state[action.team].players[action.index];
+  if (!player) { saveState(); return; }
+
+  switch (action.type) {
+    case 'pts2': player.pts2--; player.pts -= 2; state[action.team].score -= 2; break;
+    case 'pts3': player.pts3--; player.pts -= 3; state[action.team].score -= 3; break;
+    case 'ft':   player.ft--;  player.pts -= 1; state[action.team].score -= 1; break;
+    case 'ast':  player.ast--; break;
+    case 'reb':  player.reb--; break;
+    case 'stl':  player.stl--; break;
+    case 'blk':  player.blk--; break;
+    case 'fls':  player.fls--; break;
+  }
+
+  updateScores();
+  renderPlayers('home');
+  renderPlayers('away');
+  renderStats();
+  saveState();
+  showToast('Undone: ' + action.type);
+}
+
+/* ── NEW GAME ── */
+function confirmNewGame() {
+  document.getElementById('confirmModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('confirmModal').classList.remove('show');
+}
+
+function newGame() {
+  closeModal();
+  state.home.score = 0;
+  state.away.score = 0;
+  state.periodIndex = 0;
+  state.history = [];
+  state.activePlayer = null;
+  state.home.players.forEach(function(p) {
+    p.pts = 0; p.pts2 = 0; p.pts3 = 0; p.ft = 0;
+    p.ast = 0; p.reb = 0; p.stl = 0; p.blk = 0; p.fls = 0;
+  });
+  state.away.players.forEach(function(p) {
+    p.pts = 0; p.pts2 = 0; p.pts3 = 0; p.ft = 0;
+    p.ast = 0; p.reb = 0; p.stl = 0; p.blk = 0; p.fls = 0;
+  });
+  updateScores();
+  updatePeriod();
+  renderPlayers('home');
+  renderPlayers('away');
+  renderStats();
+  updateActiveIndicator();
+  saveState();
+  showToast('New game started');
+}
+
+/* ── SCORES ── */
+function updateScores() {
+  document.getElementById('homeScore').textContent = state.home.score;
+  document.getElementById('awayScore').textContent = state.away.score;
+}
+
+function flashScore(team) {
+  var el = document.getElementById(team + 'Score');
+  el.classList.add('flash');
+  setTimeout(function() { el.classList.remove('flash'); }, 200);
+}
+
+/* ── STATS TABLE ── */
+function showStats(team, btn) {
+  state.statsView = team;
+  document.querySelectorAll('.stats-toggle button').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  renderStats();
+}
+
+function renderStats() {
+  var tbody = document.getElementById('statsBody');
+  var team = state.statsView;
+  var players = state[team].players;
+  tbody.innerHTML = '';
+
+  if (players.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--text-dim);padding:20px;font-style:italic">No players added yet</td></tr>';
+    return;
+  }
+
+  var totals = { pts: 0, pts2: 0, pts3: 0, ft: 0, ast: 0, reb: 0, stl: 0, blk: 0, fls: 0 };
+
+  players.forEach(function(p) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + esc(p.name) + '</td>' +
+      '<td>' + esc(p.number) + '</td>' +
+      '<td><strong>' + p.pts + '</strong></td>' +
+      '<td>' + p.pts2 + '</td>' +
+      '<td>' + p.pts3 + '</td>' +
+      '<td>' + p.ft + '</td>' +
+      '<td>' + p.ast + '</td>' +
+      '<td>' + p.reb + '</td>' +
+      '<td>' + p.stl + '</td>' +
+      '<td>' + p.blk + '</td>' +
+      '<td>' + p.fls + '</td>';
+    tbody.appendChild(tr);
+    for (var k in totals) totals[k] += p[k];
+  });
+
+  var tr = document.createElement('tr');
+  tr.className = 'totals-row';
+  tr.innerHTML =
+    '<td>TOTALS</td>' +
+    '<td></td>' +
+    '<td><strong>' + totals.pts + '</strong></td>' +
+    '<td>' + totals.pts2 + '</td>' +
+    '<td>' + totals.pts3 + '</td>' +
+    '<td>' + totals.ft + '</td>' +
+    '<td>' + totals.ast + '</td>' +
+    '<td>' + totals.reb + '</td>' +
+    '<td>' + totals.stl + '</td>' +
+    '<td>' + totals.blk + '</td>' +
+    '<td>' + totals.fls + '</td>';
+  tbody.appendChild(tr);
+}
+
+/* ── EXPORT CSV ── */
+function exportCSV() {
+  var lines = [];
+  var date = new Date().toISOString().slice(0, 10);
+  var period = getPeriodLabel();
+
+  lines.push('Basketball Game Stats - ' + date);
+  lines.push(state.homeName + ' ' + state.home.score + ' vs ' + state.away.score + ' ' + state.awayName + ' (' + period + ')');
+  lines.push('');
+
+  ['home', 'away'].forEach(function(team) {
+    var teamName = team === 'home' ? state.homeName : state.awayName;
+    var players = state[team].players;
+    lines.push(teamName + ' (Score: ' + state[team].score + ')');
+    lines.push('Player,#,PTS,2PM,3PM,FT,AST,REB,STL,BLK,FLS');
+
+    var totals = { pts: 0, pts2: 0, pts3: 0, ft: 0, ast: 0, reb: 0, stl: 0, blk: 0, fls: 0 };
+    players.forEach(function(p) {
+      lines.push(csvSafe(p.name) + ',' + csvSafe(p.number) + ',' + p.pts + ',' + p.pts2 + ',' + p.pts3 + ',' + p.ft + ',' + p.ast + ',' + p.reb + ',' + p.stl + ',' + p.blk + ',' + p.fls);
+      for (var k in totals) totals[k] += p[k];
+    });
+    lines.push('TOTALS,,' + totals.pts + ',' + totals.pts2 + ',' + totals.pts3 + ',' + totals.ft + ',' + totals.ast + ',' + totals.reb + ',' + totals.stl + ',' + totals.blk + ',' + totals.fls);
+    lines.push('');
+  });
+
+  var csv = lines.join('\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'basketball-stats-' + date + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Stats exported as CSV');
+}
+
+function csvSafe(str) {
+  str = String(str);
+  if (str.indexOf(',') !== -1 || str.indexOf('"') !== -1 || str.indexOf('\n') !== -1) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+/* ── EXPORT PDF (Print-ready game report) ── */
+function exportPDF() {
+  var date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  var period = getPeriodLabel();
+  var homeWin = state.home.score > state.away.score;
+  var awayWin = state.away.score > state.home.score;
+  var tied = state.home.score === state.away.score;
+
+  function buildTeamTable(team) {
+    var teamName = team === 'home' ? state.homeName : state.awayName;
+    var players = state[team].players;
+    var totals = { pts: 0, pts2: 0, pts3: 0, ft: 0, ast: 0, reb: 0, stl: 0, blk: 0, fls: 0 };
+    var rows = '';
+    players.forEach(function(p) {
+      rows += '<tr>' +
+        '<td style="text-align:left;font-weight:500">' + esc(p.name) + '</td>' +
+        '<td style="color:#e8792b;font-weight:700">' + esc(p.number) + '</td>' +
+        '<td style="font-weight:700">' + p.pts + '</td>' +
+        '<td>' + p.pts2 + '</td><td>' + p.pts3 + '</td><td>' + p.ft + '</td>' +
+        '<td>' + p.ast + '</td><td>' + p.reb + '</td><td>' + p.stl + '</td>' +
+        '<td>' + p.blk + '</td><td>' + p.fls + '</td></tr>';
+      for (var k in totals) totals[k] += p[k];
+    });
+    rows += '<tr style="font-weight:700;border-top:2px solid #e8792b;color:#e8792b;background:#e8792b0a">' +
+      '<td style="text-align:left">TOTALS</td><td></td>' +
+      '<td>' + totals.pts + '</td><td>' + totals.pts2 + '</td><td>' + totals.pts3 + '</td>' +
+      '<td>' + totals.ft + '</td><td>' + totals.ast + '</td><td>' + totals.reb + '</td>' +
+      '<td>' + totals.stl + '</td><td>' + totals.blk + '</td><td>' + totals.fls + '</td></tr>';
+
+    return '<div style="margin-bottom:28px">' +
+      '<h2 style="font-family:sans-serif;font-size:16px;color:#e8792b;margin:0 0 8px;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid #e8792b;padding-bottom:4px">' + esc(teamName) + ' &mdash; ' + state[team].score + ' PTS</h2>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:sans-serif">' +
+      '<thead><tr style="background:#f5f5f5;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#888">' +
+      '<th style="text-align:left;padding:6px 8px">Player</th><th style="padding:6px 4px">#</th>' +
+      '<th style="padding:6px 4px">PTS</th><th style="padding:6px 4px">2PM</th><th style="padding:6px 4px">3PM</th>' +
+      '<th style="padding:6px 4px">FT</th><th style="padding:6px 4px">AST</th><th style="padding:6px 4px">REB</th>' +
+      '<th style="padding:6px 4px">STL</th><th style="padding:6px 4px">BLK</th><th style="padding:6px 4px">FLS</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+  }
+
+  var resultText = tied ? 'TIE GAME' : (homeWin ? esc(state.homeName) + ' WIN' : esc(state.awayName) + ' WIN');
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+    '<title>Game Report - ' + esc(state.homeName) + ' vs ' + esc(state.awayName) + '</title>' +
+    '<style>' +
+    '@media print { @page { margin: 0.5in; size: letter; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }' +
+    'body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 40px; color: #222; background: #fff; }' +
+    'table td, table th { padding: 5px 8px; text-align: center; border-bottom: 1px solid #eee; }' +
+    '</style></head><body>' +
+
+    // Header
+    '<div style="text-align:center;margin-bottom:30px;padding-bottom:20px;border-bottom:3px solid #e8792b">' +
+    '<div style="font-size:10px;text-transform:uppercase;letter-spacing:3px;color:#888;margin-bottom:6px">Basketball Game Report</div>' +
+    '<div style="font-size:11px;color:#aaa;margin-bottom:16px">' + date + ' &bull; Period: ' + period + '</div>' +
+
+    // Scoreboard
+    '<div style="display:flex;align-items:center;justify-content:center;gap:24px;margin:0 auto">' +
+    '<div style="text-align:center;min-width:120px">' +
+    '<div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#888;margin-bottom:4px">' + esc(state.homeName) + '</div>' +
+    '<div style="font-size:56px;font-weight:800;line-height:1;color:' + (homeWin ? '#e8792b' : '#222') + '">' + state.home.score + '</div>' +
+    '</div>' +
+    '<div style="font-size:14px;color:#ccc;font-weight:300;letter-spacing:3px">VS</div>' +
+    '<div style="text-align:center;min-width:120px">' +
+    '<div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#888;margin-bottom:4px">' + esc(state.awayName) + '</div>' +
+    '<div style="font-size:56px;font-weight:800;line-height:1;color:' + (awayWin ? '#e8792b' : '#222') + '">' + state.away.score + '</div>' +
+    '</div>' +
+    '</div>' +
+
+    '<div style="margin-top:12px;font-size:13px;font-weight:700;color:#e8792b;letter-spacing:2px;text-transform:uppercase">' + resultText + '</div>' +
+    '</div>' +
+
+    // Box scores
+    buildTeamTable('home') +
+    buildTeamTable('away') +
+
+    // Footer
+    '<div style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:10px;color:#bbb;letter-spacing:1px">Generated by Basketball Scorer</div>' +
+
+    '<script>window.onload=function(){window.print()}<\/script>' +
+    '</body></html>';
+
+  var win = window.open('', '_blank');
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+    showToast('Game report opened \u2014 save as PDF from print dialog');
+  } else {
+    showToast('Pop-up blocked \u2014 please allow pop-ups');
+  }
+}
+
+/* ══════════════════════════════════════════
+   SPOTLIGHT TUTORIAL
+   ══════════════════════════════════════════ */
+
+var tutorialSteps = [
+  {
+    target: '.scoreboard',
+    title: 'Scoreboard',
+    text: 'This is your live scoreboard. Click the team names to rename them. Scores update automatically when you record points.',
+    tip: 'Tap "HOME" or "AWAY" right now to type your team name.',
+    position: 'bottom'
+  },
+  {
+    target: '.center-info',
+    title: 'Period Tracker',
+    text: 'Track the current quarter or overtime period here. Use the Prev/Next buttons to advance through the game.',
+    tip: 'Periods go Q1 \u2192 Q2 \u2192 Q3 \u2192 Q4 \u2192 OT1 \u2192 OT2 and so on.',
+    position: 'bottom'
+  },
+  {
+    target: '#homePanel',
+    title: 'Add Players',
+    text: 'Type a player\'s name and jersey number, then hit Add (or press Enter). Build your roster before the game starts.',
+    tip: 'You can add players for both teams. Rosters are saved even after a new game.',
+    position: 'bottom'
+  },
+  {
+    target: '#homePlayerList',
+    title: 'Select a Player',
+    text: 'Tap any player to select them. They\'ll glow orange \u2014 all stat actions will apply to the selected player.',
+    tip: 'Tap the same player again to deselect. Switch between teams freely.',
+    position: 'bottom',
+    fallback: '#homePanel'
+  },
+  {
+    target: '.action-grid',
+    title: 'Record Actions',
+    text: 'With a player selected, tap these buttons to record 2-pointers, 3-pointers, free throws, assists, rebounds, steals, blocks, and fouls.',
+    tip: 'Scoring buttons automatically update both the player\'s stats and the team score.',
+    position: 'top'
+  },
+  {
+    target: '.undo-btn',
+    title: 'Undo Mistakes',
+    text: 'Made an error? This button reverses the last recorded action instantly.',
+    tip: 'You can undo multiple times in a row.',
+    position: 'top'
+  },
+  {
+    target: '.stats-section',
+    title: 'Box Score',
+    text: 'Full player stats are shown here. Toggle between Home and Away teams to see each box score with totals.',
+    tip: 'Export as CSV for spreadsheets, or PDF for a printable game report.',
+    position: 'top'
+  }
+];
+
+var tutorialStep = 0;
+var tutorialActive = false;
+
+function showTutorial() {
+  tutorialStep = 0;
+  tutorialActive = true;
+  document.getElementById('tutorialBackdrop').classList.add('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(function() { positionSpotlight(); }, 100);
+}
+
+function closeTutorial() {
+  tutorialActive = false;
+  document.getElementById('tutorialBackdrop').classList.remove('show');
+  document.getElementById('tutorialTooltip').classList.remove('show');
+  try { localStorage.setItem(TUTORIAL_KEY, '1'); } catch(e) {}
+}
+
+function nextTutorialStep() {
+  tutorialStep++;
+  if (tutorialStep >= tutorialSteps.length) {
+    closeTutorial();
+    showToast('Tutorial complete \u2014 you\'re ready to score!');
+    return;
+  }
+  positionSpotlight();
+}
+
+function prevTutorialStep() {
+  if (tutorialStep > 0) {
+    tutorialStep--;
+    positionSpotlight();
+  }
+}
+
+function positionSpotlight() {
+  var step = tutorialSteps[tutorialStep];
+  var targetEl = document.querySelector(step.target);
+
+  // Fallback if target doesn't exist or is empty
+  if ((!targetEl || targetEl.offsetHeight === 0) && step.fallback) {
+    targetEl = document.querySelector(step.fallback);
+  }
+  if (!targetEl) return;
+
+  // Scroll target into view
+  var elRect = targetEl.getBoundingClientRect();
+  var needsScroll = elRect.top < 0 || elRect.bottom > window.innerHeight;
+  if (needsScroll) {
+    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(function() { placeElements(targetEl, step); }, 400);
+  } else {
+    placeElements(targetEl, step);
+  }
+}
+
+function placeElements(targetEl, step) {
+  var rect = targetEl.getBoundingClientRect();
+  var pad = 8;
+
+  // Position spotlight hole
+  var hole = document.getElementById('spotlightHole');
+  hole.style.top = (rect.top + window.scrollY - pad) + 'px';
+  hole.style.left = (rect.left - pad) + 'px';
+  hole.style.width = (rect.width + pad * 2) + 'px';
+  hole.style.height = (rect.height + pad * 2) + 'px';
+
+  // Build dots
+  var dotsHtml = '';
+  for (var i = 0; i < tutorialSteps.length; i++) {
+    var cls = 'dot';
+    if (i === tutorialStep) cls += ' active';
+    else if (i < tutorialStep) cls += ' done';
+    dotsHtml += '<span class="' + cls + '"></span>';
+  }
+  document.getElementById('tutorialDots').innerHTML = dotsHtml;
+
+  // Fill content
+  document.getElementById('tooltipTitle').textContent = step.title;
+  document.getElementById('tooltipText').textContent = step.text;
+  document.getElementById('tooltipTip').textContent = step.tip;
+
+  var isFirst = tutorialStep === 0;
+  var isLast = tutorialStep === tutorialSteps.length - 1;
+  document.getElementById('tutorialNav').innerHTML =
+    (isFirst
+      ? '<button class="btn-skip" onclick="closeTutorial()">Skip</button>'
+      : '<button class="btn-skip" onclick="prevTutorialStep()">Back</button>') +
+    '<span class="tutorial-step-counter">' + (tutorialStep + 1) + '/' + tutorialSteps.length + '</span>' +
+    '<button class="btn-next" onclick="nextTutorialStep()">' + (isLast ? 'Done' : 'Next') + '</button>';
+
+  // Position tooltip
+  var tooltip = document.getElementById('tutorialTooltip');
+  var arrow = document.getElementById('tooltipArrow');
+  tooltip.classList.remove('show');
+  arrow.className = 'tooltip-arrow';
+
+  // Reset for measurement
+  tooltip.style.top = '0';
+  tooltip.style.left = '0';
+  tooltip.classList.add('show');
+  var ttRect = tooltip.getBoundingClientRect();
+
+  var ttLeft = rect.left + rect.width / 2 - ttRect.width / 2;
+  // Clamp horizontal
+  ttLeft = Math.max(8, Math.min(ttLeft, window.innerWidth - ttRect.width - 8));
+  var arrowLeft = rect.left + rect.width / 2 - ttLeft - 7;
+  arrowLeft = Math.max(16, Math.min(arrowLeft, ttRect.width - 30));
+
+  if (step.position === 'bottom') {
+    var ttTop = rect.bottom + window.scrollY + pad + 14;
+    tooltip.style.top = ttTop + 'px';
+    tooltip.style.left = ttLeft + 'px';
+    arrow.classList.add('top');
+    arrow.style.left = arrowLeft + 'px';
+    arrow.style.top = '';
+    arrow.style.bottom = '';
+  } else {
+    var ttTop2 = rect.top + window.scrollY - ttRect.height - pad - 14;
+    if (ttTop2 < window.scrollY + 8) {
+      ttTop2 = rect.bottom + window.scrollY + pad + 14;
+      arrow.classList.add('top');
+    } else {
+      arrow.classList.add('bottom');
+    }
+    tooltip.style.top = ttTop2 + 'px';
+    tooltip.style.left = ttLeft + 'px';
+    arrow.style.left = arrowLeft + 'px';
+    arrow.style.top = '';
+    arrow.style.bottom = '';
+  }
+}
+
+// Reposition on scroll/resize
+var repositionTimer;
+function onRepositionNeeded() {
+  if (!tutorialActive) return;
+  clearTimeout(repositionTimer);
+  repositionTimer = setTimeout(function() { positionSpotlight(); }, 100);
+}
+window.addEventListener('resize', onRepositionNeeded);
+window.addEventListener('scroll', onRepositionNeeded);
+
+// Click backdrop to advance
+document.addEventListener('click', function(e) {
+  if (!tutorialActive) return;
+  var backdrop = document.getElementById('tutorialBackdrop');
+  if (e.target === backdrop) {
+    nextTutorialStep();
+  }
+});
+
+/* ── UTILITIES ── */
+function esc(str) {
+  var d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function showToast(msg) {
+  var toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function() { toast.classList.remove('show'); }, 2200);
+}
+
+function setupEnterKey(team) {
+  var nameInput = document.getElementById(team + 'PlayerName');
+  var numInput = document.getElementById(team + 'PlayerNum');
+  [nameInput, numInput].forEach(function(input) {
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') addPlayer(team);
+    });
+  });
+}
+
+/* ── INIT ── */
+function init() {
+  loadState();
+  initTeamNames();
+  updateScores();
+  updatePeriod();
+  renderPlayers('home');
+  renderPlayers('away');
+  updateActiveIndicator();
+  showStats(state.statsView);
+  setupEnterKey('home');
+  setupEnterKey('away');
+
+  document.getElementById('homePanelTitle').textContent = state.homeName + ' ROSTER';
+  document.getElementById('awayPanelTitle').textContent = state.awayName + ' ROSTER';
+  document.getElementById('statsHomeBtn').textContent = state.homeName;
+  document.getElementById('statsAwayBtn').textContent = state.awayName;
+
+  if (state.statsView === 'away') {
+    document.getElementById('statsHomeBtn').classList.remove('active');
+    document.getElementById('statsAwayBtn').classList.add('active');
+  }
+
+  // Show tutorial on first visit
+  try {
+    if (!localStorage.getItem(TUTORIAL_KEY)) {
+      setTimeout(showTutorial, 500);
+    }
+  } catch(e) {}
+}
+
+init();
