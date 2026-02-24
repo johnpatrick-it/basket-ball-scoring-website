@@ -8,15 +8,21 @@ var state = {
   awayName: 'AWAY',
   periodIndex: 0,
   overtimeCount: 0,
-  home: { players: [], score: 0 },
-  away: { players: [], score: 0 },
+  home: { players: [], score: 0, timeouts: [false,false,false,false,false] },
+  away: { players: [], score: 0, timeouts: [false,false,false,false,false] },
   history: [],
   activePlayer: null,
   statsView: 'home'
 };
 
 function makePlayer(name, number) {
-  return { name: name, number: number, pts: 0, pts2: 0, pts3: 0, ft: 0, ast: 0, reb: 0, stl: 0, blk: 0, fls: 0 };
+  return {
+    name: name, number: number,
+    pts: 0, pts2: 0, pts3: 0, ft: 0,
+    miss2: 0, miss3: 0, missft: 0,
+    ast: 0, oreb: 0, dreb: 0,
+    stl: 0, blk: 0, to: 0, fls: 0
+  };
 }
 
 /* ── PERSISTENCE ── */
@@ -30,6 +36,9 @@ function loadState() {
     if (saved) {
       var parsed = JSON.parse(saved);
       for (var k in parsed) { if (parsed.hasOwnProperty(k)) state[k] = parsed[k]; }
+      // Initialize timeouts if missing (backward compatibility)
+      if (!state.home.timeouts) state.home.timeouts = [false,false,false,false,false];
+      if (!state.away.timeouts) state.away.timeouts = [false,false,false,false,false];
     }
   } catch(e) {}
 }
@@ -56,6 +65,24 @@ function prevPeriod() {
 
 function updatePeriod() {
   document.getElementById('periodLabel').textContent = getPeriodLabel();
+}
+
+/* ── TIMEOUTS ── */
+function toggleTimeout(team, index) {
+  state[team].timeouts[index] = !state[team].timeouts[index];
+  renderTimeouts(team);
+  saveState();
+}
+
+function renderTimeouts(team) {
+  for (var i = 0; i < 5; i++) {
+    var dot = document.getElementById(team + 'Timeout' + i);
+    if (state[team].timeouts[i]) {
+      dot.classList.add('used');
+    } else {
+      dot.classList.remove('used');
+    }
+  }
 }
 
 /* ── TEAM NAMES ── */
@@ -178,10 +205,15 @@ function recordAction(type) {
     case 'pts2': player.pts2++; player.pts += 2; points = 2; break;
     case 'pts3': player.pts3++; player.pts += 3; points = 3; break;
     case 'ft':   player.ft++;  player.pts += 1; points = 1; break;
+    case 'miss2': player.miss2++; break;
+    case 'miss3': player.miss3++; break;
+    case 'missft': player.missft++; break;
     case 'ast':  player.ast++; break;
-    case 'reb':  player.reb++; break;
+    case 'oreb': player.oreb++; break;
+    case 'dreb': player.dreb++; break;
     case 'stl':  player.stl++; break;
     case 'blk':  player.blk++; break;
+    case 'to':   player.to++; break;
     case 'fls':  player.fls++; break;
   }
 
@@ -197,7 +229,12 @@ function recordAction(type) {
   renderStats();
   saveState();
 
-  var labels = { pts2: '+2 pts', pts3: '+3 pts', ft: '+1 FT', ast: '+1 ast', reb: '+1 reb', stl: '+1 stl', blk: '+1 blk', fls: '+1 foul' };
+  var labels = {
+    pts2: '+2 pts', pts3: '+3 pts', ft: '+1 FT',
+    miss2: 'Miss 2PT', miss3: 'Miss 3PT', missft: 'Miss FT',
+    ast: '+1 ast', oreb: '+1 oreb', dreb: '+1 dreb',
+    stl: '+1 stl', blk: '+1 blk', to: '+1 TO', fls: '+1 foul'
+  };
   showToast(labels[type] + ' \u2014 #' + player.number + ' ' + player.name);
 }
 
@@ -214,10 +251,15 @@ function undoAction() {
     case 'pts2': player.pts2--; player.pts -= 2; state[action.team].score -= 2; break;
     case 'pts3': player.pts3--; player.pts -= 3; state[action.team].score -= 3; break;
     case 'ft':   player.ft--;  player.pts -= 1; state[action.team].score -= 1; break;
+    case 'miss2': player.miss2--; break;
+    case 'miss3': player.miss3--; break;
+    case 'missft': player.missft--; break;
     case 'ast':  player.ast--; break;
-    case 'reb':  player.reb--; break;
+    case 'oreb': player.oreb--; break;
+    case 'dreb': player.dreb--; break;
     case 'stl':  player.stl--; break;
     case 'blk':  player.blk--; break;
+    case 'to':   player.to--; break;
     case 'fls':  player.fls--; break;
   }
 
@@ -242,16 +284,22 @@ function newGame() {
   closeModal();
   state.home.score = 0;
   state.away.score = 0;
+  state.home.timeouts = [false,false,false,false,false];
+  state.away.timeouts = [false,false,false,false,false];
   state.periodIndex = 0;
   state.history = [];
   state.activePlayer = null;
   state.home.players.forEach(function(p) {
     p.pts = 0; p.pts2 = 0; p.pts3 = 0; p.ft = 0;
-    p.ast = 0; p.reb = 0; p.stl = 0; p.blk = 0; p.fls = 0;
+    p.miss2 = 0; p.miss3 = 0; p.missft = 0;
+    p.ast = 0; p.oreb = 0; p.dreb = 0;
+    p.stl = 0; p.blk = 0; p.to = 0; p.fls = 0;
   });
   state.away.players.forEach(function(p) {
     p.pts = 0; p.pts2 = 0; p.pts3 = 0; p.ft = 0;
-    p.ast = 0; p.reb = 0; p.stl = 0; p.blk = 0; p.fls = 0;
+    p.miss2 = 0; p.miss3 = 0; p.missft = 0;
+    p.ast = 0; p.oreb = 0; p.dreb = 0;
+    p.stl = 0; p.blk = 0; p.to = 0; p.fls = 0;
   });
   updateScores();
   updatePeriod();
@@ -259,6 +307,8 @@ function newGame() {
   renderPlayers('away');
   renderStats();
   updateActiveIndicator();
+  renderTimeouts('home');
+  renderTimeouts('away');
   saveState();
   showToast('New game started');
 }
@@ -290,29 +340,51 @@ function renderStats() {
   tbody.innerHTML = '';
 
   if (players.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--text-dim);padding:20px;font-style:italic">No players added yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;color:var(--text-dim);padding:20px;font-style:italic">No players added yet</td></tr>';
     return;
   }
 
-  var totals = { pts: 0, pts2: 0, pts3: 0, ft: 0, ast: 0, reb: 0, stl: 0, blk: 0, fls: 0 };
+  var totals = { pts: 0, pts2: 0, pts3: 0, ft: 0, miss2: 0, miss3: 0, missft: 0, ast: 0, oreb: 0, dreb: 0, stl: 0, blk: 0, to: 0, fls: 0 };
 
   players.forEach(function(p) {
+    var fgm = p.pts2 + p.pts3;
+    var fga = fgm + p.miss2 + p.miss3;
+    var tpm = p.pts3;
+    var tpa = p.pts3 + p.miss3;
+    var ftm = p.ft;
+    var fta = p.ft + p.missft;
+    var reb = p.oreb + p.dreb;
+
     var tr = document.createElement('tr');
     tr.innerHTML =
       '<td>' + esc(p.name) + '</td>' +
       '<td>' + esc(p.number) + '</td>' +
       '<td><strong>' + p.pts + '</strong></td>' +
-      '<td>' + p.pts2 + '</td>' +
-      '<td>' + p.pts3 + '</td>' +
-      '<td>' + p.ft + '</td>' +
+      '<td>' + fgm + '</td>' +
+      '<td>' + fga + '</td>' +
+      '<td>' + tpm + '</td>' +
+      '<td>' + tpa + '</td>' +
+      '<td>' + ftm + '</td>' +
+      '<td>' + fta + '</td>' +
+      '<td>' + p.oreb + '</td>' +
+      '<td>' + p.dreb + '</td>' +
+      '<td>' + reb + '</td>' +
       '<td>' + p.ast + '</td>' +
-      '<td>' + p.reb + '</td>' +
       '<td>' + p.stl + '</td>' +
       '<td>' + p.blk + '</td>' +
+      '<td>' + p.to + '</td>' +
       '<td>' + p.fls + '</td>';
     tbody.appendChild(tr);
     for (var k in totals) totals[k] += p[k];
   });
+
+  var totalFgm = totals.pts2 + totals.pts3;
+  var totalFga = totalFgm + totals.miss2 + totals.miss3;
+  var totalTpm = totals.pts3;
+  var totalTpa = totals.pts3 + totals.miss3;
+  var totalFtm = totals.ft;
+  var totalFta = totals.ft + totals.missft;
+  var totalReb = totals.oreb + totals.dreb;
 
   var tr = document.createElement('tr');
   tr.className = 'totals-row';
@@ -320,13 +392,19 @@ function renderStats() {
     '<td>TOTALS</td>' +
     '<td></td>' +
     '<td><strong>' + totals.pts + '</strong></td>' +
-    '<td>' + totals.pts2 + '</td>' +
-    '<td>' + totals.pts3 + '</td>' +
-    '<td>' + totals.ft + '</td>' +
+    '<td>' + totalFgm + '</td>' +
+    '<td>' + totalFga + '</td>' +
+    '<td>' + totalTpm + '</td>' +
+    '<td>' + totalTpa + '</td>' +
+    '<td>' + totalFtm + '</td>' +
+    '<td>' + totalFta + '</td>' +
+    '<td>' + totals.oreb + '</td>' +
+    '<td>' + totals.dreb + '</td>' +
+    '<td>' + totalReb + '</td>' +
     '<td>' + totals.ast + '</td>' +
-    '<td>' + totals.reb + '</td>' +
     '<td>' + totals.stl + '</td>' +
     '<td>' + totals.blk + '</td>' +
+    '<td>' + totals.to + '</td>' +
     '<td>' + totals.fls + '</td>';
   tbody.appendChild(tr);
 }
@@ -345,14 +423,28 @@ function exportCSV() {
     var teamName = team === 'home' ? state.homeName : state.awayName;
     var players = state[team].players;
     lines.push(teamName + ' (Score: ' + state[team].score + ')');
-    lines.push('Player,#,PTS,2PM,3PM,FT,AST,REB,STL,BLK,FLS');
+    lines.push('Player,#,PTS,FGM,FGA,3PM,3PA,FTM,FTA,OREB,DREB,REB,AST,STL,BLK,TO,FLS');
 
-    var totals = { pts: 0, pts2: 0, pts3: 0, ft: 0, ast: 0, reb: 0, stl: 0, blk: 0, fls: 0 };
+    var totals = { pts: 0, pts2: 0, pts3: 0, ft: 0, miss2: 0, miss3: 0, missft: 0, ast: 0, oreb: 0, dreb: 0, stl: 0, blk: 0, to: 0, fls: 0 };
     players.forEach(function(p) {
-      lines.push(csvSafe(p.name) + ',' + csvSafe(p.number) + ',' + p.pts + ',' + p.pts2 + ',' + p.pts3 + ',' + p.ft + ',' + p.ast + ',' + p.reb + ',' + p.stl + ',' + p.blk + ',' + p.fls);
+      var fgm = p.pts2 + p.pts3;
+      var fga = fgm + p.miss2 + p.miss3;
+      var tpm = p.pts3;
+      var tpa = p.pts3 + p.miss3;
+      var ftm = p.ft;
+      var fta = p.ft + p.missft;
+      var reb = p.oreb + p.dreb;
+      lines.push(csvSafe(p.name) + ',' + csvSafe(p.number) + ',' + p.pts + ',' + fgm + ',' + fga + ',' + tpm + ',' + tpa + ',' + ftm + ',' + fta + ',' + p.oreb + ',' + p.dreb + ',' + reb + ',' + p.ast + ',' + p.stl + ',' + p.blk + ',' + p.to + ',' + p.fls);
       for (var k in totals) totals[k] += p[k];
     });
-    lines.push('TOTALS,,' + totals.pts + ',' + totals.pts2 + ',' + totals.pts3 + ',' + totals.ft + ',' + totals.ast + ',' + totals.reb + ',' + totals.stl + ',' + totals.blk + ',' + totals.fls);
+    var totalFgm = totals.pts2 + totals.pts3;
+    var totalFga = totalFgm + totals.miss2 + totals.miss3;
+    var totalTpm = totals.pts3;
+    var totalTpa = totals.pts3 + totals.miss3;
+    var totalFtm = totals.ft;
+    var totalFta = totals.ft + totals.missft;
+    var totalReb = totals.oreb + totals.dreb;
+    lines.push('TOTALS,,' + totals.pts + ',' + totalFgm + ',' + totalFga + ',' + totalTpm + ',' + totalTpa + ',' + totalFtm + ',' + totalFta + ',' + totals.oreb + ',' + totals.dreb + ',' + totalReb + ',' + totals.ast + ',' + totals.stl + ',' + totals.blk + ',' + totals.to + ',' + totals.fls);
     lines.push('');
   });
 
@@ -388,32 +480,55 @@ function exportPDF() {
   function buildTeamTable(team) {
     var teamName = team === 'home' ? state.homeName : state.awayName;
     var players = state[team].players;
-    var totals = { pts: 0, pts2: 0, pts3: 0, ft: 0, ast: 0, reb: 0, stl: 0, blk: 0, fls: 0 };
+    var totals = { pts: 0, pts2: 0, pts3: 0, ft: 0, miss2: 0, miss3: 0, missft: 0, ast: 0, oreb: 0, dreb: 0, stl: 0, blk: 0, to: 0, fls: 0 };
     var rows = '';
     players.forEach(function(p) {
+      var fgm = p.pts2 + p.pts3;
+      var fga = fgm + p.miss2 + p.miss3;
+      var tpm = p.pts3;
+      var tpa = p.pts3 + p.miss3;
+      var ftm = p.ft;
+      var fta = p.ft + p.missft;
+      var reb = p.oreb + p.dreb;
       rows += '<tr>' +
         '<td style="text-align:left;font-weight:500">' + esc(p.name) + '</td>' +
         '<td style="color:#e8792b;font-weight:700">' + esc(p.number) + '</td>' +
         '<td style="font-weight:700">' + p.pts + '</td>' +
-        '<td>' + p.pts2 + '</td><td>' + p.pts3 + '</td><td>' + p.ft + '</td>' +
-        '<td>' + p.ast + '</td><td>' + p.reb + '</td><td>' + p.stl + '</td>' +
-        '<td>' + p.blk + '</td><td>' + p.fls + '</td></tr>';
+        '<td>' + fgm + '</td><td>' + fga + '</td>' +
+        '<td>' + tpm + '</td><td>' + tpa + '</td>' +
+        '<td>' + ftm + '</td><td>' + fta + '</td>' +
+        '<td>' + p.oreb + '</td><td>' + p.dreb + '</td><td>' + reb + '</td>' +
+        '<td>' + p.ast + '</td><td>' + p.stl + '</td><td>' + p.blk + '</td>' +
+        '<td>' + p.to + '</td><td>' + p.fls + '</td></tr>';
       for (var k in totals) totals[k] += p[k];
     });
+    var totalFgm = totals.pts2 + totals.pts3;
+    var totalFga = totalFgm + totals.miss2 + totals.miss3;
+    var totalTpm = totals.pts3;
+    var totalTpa = totals.pts3 + totals.miss3;
+    var totalFtm = totals.ft;
+    var totalFta = totals.ft + totals.missft;
+    var totalReb = totals.oreb + totals.dreb;
     rows += '<tr style="font-weight:700;border-top:2px solid #e8792b;color:#e8792b;background:#e8792b0a">' +
       '<td style="text-align:left">TOTALS</td><td></td>' +
-      '<td>' + totals.pts + '</td><td>' + totals.pts2 + '</td><td>' + totals.pts3 + '</td>' +
-      '<td>' + totals.ft + '</td><td>' + totals.ast + '</td><td>' + totals.reb + '</td>' +
-      '<td>' + totals.stl + '</td><td>' + totals.blk + '</td><td>' + totals.fls + '</td></tr>';
+      '<td>' + totals.pts + '</td><td>' + totalFgm + '</td><td>' + totalFga + '</td>' +
+      '<td>' + totalTpm + '</td><td>' + totalTpa + '</td>' +
+      '<td>' + totalFtm + '</td><td>' + totalFta + '</td>' +
+      '<td>' + totals.oreb + '</td><td>' + totals.dreb + '</td><td>' + totalReb + '</td>' +
+      '<td>' + totals.ast + '</td><td>' + totals.stl + '</td><td>' + totals.blk + '</td>' +
+      '<td>' + totals.to + '</td><td>' + totals.fls + '</td></tr>';
 
     return '<div style="margin-bottom:28px">' +
       '<h2 style="font-family:sans-serif;font-size:16px;color:#e8792b;margin:0 0 8px;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid #e8792b;padding-bottom:4px">' + esc(teamName) + ' &mdash; ' + state[team].score + ' PTS</h2>' +
-      '<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:sans-serif">' +
-      '<thead><tr style="background:#f5f5f5;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#888">' +
-      '<th style="text-align:left;padding:6px 8px">Player</th><th style="padding:6px 4px">#</th>' +
-      '<th style="padding:6px 4px">PTS</th><th style="padding:6px 4px">2PM</th><th style="padding:6px 4px">3PM</th>' +
-      '<th style="padding:6px 4px">FT</th><th style="padding:6px 4px">AST</th><th style="padding:6px 4px">REB</th>' +
-      '<th style="padding:6px 4px">STL</th><th style="padding:6px 4px">BLK</th><th style="padding:6px 4px">FLS</th>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:11px;font-family:sans-serif">' +
+      '<thead><tr style="background:#f5f5f5;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888">' +
+      '<th style="text-align:left;padding:5px 6px">Player</th><th style="padding:5px 4px">#</th>' +
+      '<th style="padding:5px 4px">PTS</th><th style="padding:5px 4px">FGM</th><th style="padding:5px 4px">FGA</th>' +
+      '<th style="padding:5px 4px">3PM</th><th style="padding:5px 4px">3PA</th>' +
+      '<th style="padding:5px 4px">FTM</th><th style="padding:5px 4px">FTA</th>' +
+      '<th style="padding:5px 4px">OR</th><th style="padding:5px 4px">DR</th><th style="padding:5px 4px">REB</th>' +
+      '<th style="padding:5px 4px">AST</th><th style="padding:5px 4px">STL</th><th style="padding:5px 4px">BLK</th>' +
+      '<th style="padding:5px 4px">TO</th><th style="padding:5px 4px">FLS</th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table></div>';
   }
 
@@ -424,7 +539,7 @@ function exportPDF() {
     '<style>' +
     '@media print { @page { margin: 0.5in; size: letter; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }' +
     'body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 40px; color: #222; background: #fff; }' +
-    'table td, table th { padding: 5px 8px; text-align: center; border-bottom: 1px solid #eee; }' +
+    'table td, table th { padding: 4px 6px; text-align: center; border-bottom: 1px solid #eee; }' +
     '</style></head><body>' +
 
     // Header
@@ -475,8 +590,8 @@ function exportPDF() {
 var tutorialSteps = [
   {
     target: '.scoreboard',
-    title: 'Scoreboard',
-    text: 'This is your live scoreboard. Click the team names to rename them. Scores update automatically when you record points.',
+    title: 'Scoreboard & Timeouts',
+    text: 'This is your live scoreboard. Click team names to rename them. Scores update automatically. Click timeout dots below each team to track timeouts used.',
     tip: 'Tap "HOME" or "AWAY" right now to type your team name.',
     position: 'bottom'
   },
@@ -505,7 +620,7 @@ var tutorialSteps = [
   {
     target: '.action-grid',
     title: 'Record Actions',
-    text: 'With a player selected, tap these buttons to record 2-pointers, 3-pointers, free throws, assists, rebounds, steals, blocks, and fouls.',
+    text: 'With a player selected, tap these buttons to record points, misses, rebounds (off/def), assists, steals, blocks, turnovers, and fouls.',
     tip: 'Scoring buttons automatically update both the player\'s stats and the team score.',
     position: 'top'
   },
@@ -519,7 +634,7 @@ var tutorialSteps = [
   {
     target: '.stats-section',
     title: 'Box Score',
-    text: 'Full player stats are shown here. Toggle between Home and Away teams to see each box score with totals.',
+    text: 'Full player stats are shown here with FG%, 3P%, offensive/defensive rebounds, turnovers, and more. Toggle between Home and Away teams.',
     tip: 'Export as CSV for spreadsheets, or PDF for a printable game report.',
     position: 'top'
   }
@@ -711,6 +826,8 @@ function init() {
   renderPlayers('home');
   renderPlayers('away');
   updateActiveIndicator();
+  renderTimeouts('home');
+  renderTimeouts('away');
   showStats(state.statsView);
   setupEnterKey('home');
   setupEnterKey('away');

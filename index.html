@@ -17,6 +17,16 @@
       <div class="team-score">
         <input type="text" class="team-name" id="homeName" value="HOME" maxlength="16" spellcheck="false" aria-label="Home team name">
         <div class="score-value" id="homeScore">0</div>
+        <div class="timeout-tracker">
+          <span class="timeout-label">Timeouts</span>
+          <div class="timeout-dots">
+            <button class="timeout-dot" onclick="toggleTimeout('home',0)" id="homeTimeout0"></button>
+            <button class="timeout-dot" onclick="toggleTimeout('home',1)" id="homeTimeout1"></button>
+            <button class="timeout-dot" onclick="toggleTimeout('home',2)" id="homeTimeout2"></button>
+            <button class="timeout-dot" onclick="toggleTimeout('home',3)" id="homeTimeout3"></button>
+            <button class="timeout-dot" onclick="toggleTimeout('home',4)" id="homeTimeout4"></button>
+          </div>
+        </div>
       </div>
       <div class="center-info">
         <div class="period-label" id="periodLabel">Q1</div>
@@ -29,6 +39,16 @@
       <div class="team-score">
         <input type="text" class="team-name" id="awayName" value="AWAY" maxlength="16" spellcheck="false" aria-label="Away team name">
         <div class="score-value" id="awayScore">0</div>
+        <div class="timeout-tracker">
+          <span class="timeout-label">Timeouts</span>
+          <div class="timeout-dots">
+            <button class="timeout-dot" onclick="toggleTimeout('away',0)" id="awayTimeout0"></button>
+            <button class="timeout-dot" onclick="toggleTimeout('away',1)" id="awayTimeout1"></button>
+            <button class="timeout-dot" onclick="toggleTimeout('away',2)" id="awayTimeout2"></button>
+            <button class="timeout-dot" onclick="toggleTimeout('away',3)" id="awayTimeout3"></button>
+            <button class="timeout-dot" onclick="toggleTimeout('away',4)" id="awayTimeout4"></button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -67,18 +87,75 @@
     </div>
     <div class="no-player-warning" id="noPlayerWarning">Select a player from a roster above to record stats</div>
     <div class="action-grid">
-      <button class="action-btn scoring" onclick="recordAction('pts2')"><span class="btn-icon">2</span>2-Pointer</button>
-      <button class="action-btn scoring" onclick="recordAction('pts3')"><span class="btn-icon">3</span>3-Pointer</button>
-      <button class="action-btn scoring" onclick="recordAction('ft')"><span class="btn-icon">1</span>Free Throw</button>
-      <button class="action-btn" onclick="recordAction('ast')"><span class="btn-icon">A</span>Assist</button>
-      <button class="action-btn" onclick="recordAction('reb')"><span class="btn-icon">R</span>Rebound</button>
-      <button class="action-btn" onclick="recordAction('stl')"><span class="btn-icon">S</span>Steal</button>
-      <button class="action-btn" onclick="recordAction('blk')"><span class="btn-icon">B</span>Block</button>
-      <button class="action-btn" onclick="recordAction('fls')"><span class="btn-icon">F</span>Foul</button>
-      <button class="action-btn undo-btn" onclick="undoAction()"><span class="btn-icon">&larr;</span>Undo</button>
-      <button class="action-btn new-game-btn" onclick="confirmNewGame()"><span class="btn-icon">&times;</span>New Game</button>
-      <button class="action-btn export-btn" onclick="exportCSV()"><span class="btn-icon">&darr;</span>Export CSV</button>
-      <button class="action-btn export-btn" onclick="exportPDF()"><span class="btn-icon">&#9113;</span>Export PDF</button>
+      <!-- Scoring -->
+      <div class="split-btn">
+        <button class="split-left scoring-make" onclick="recordAction('pts2')">
+          <span class="split-icon">2</span>
+          <span class="split-label">Made</span>
+        </button>
+        <button class="split-right scoring-miss" onclick="recordAction('miss2')">
+          <span class="split-icon">✕</span>
+          <span class="split-label">Miss</span>
+        </button>
+      </div>
+      <div class="split-btn">
+        <button class="split-left scoring-make" onclick="recordAction('pts3')">
+          <span class="split-icon">3</span>
+          <span class="split-label">Made</span>
+        </button>
+        <button class="split-right scoring-miss" onclick="recordAction('miss3')">
+          <span class="split-icon">✕</span>
+          <span class="split-label">Miss</span>
+        </button>
+      </div>
+      <div class="split-btn">
+        <button class="split-left scoring-make" onclick="recordAction('ft')">
+          <span class="split-icon">FT</span>
+          <span class="split-label">Made</span>
+        </button>
+        <button class="split-right scoring-miss" onclick="recordAction('missft')">
+          <span class="split-icon">✕</span>
+          <span class="split-label">Miss</span>
+        </button>
+      </div>
+
+      <!-- Rebounds -->
+      <div class="split-btn">
+        <button class="split-left reb-offensive" onclick="recordAction('oreb')">
+          <span class="split-icon">OFF</span>
+          <span class="split-label">Reb</span>
+        </button>
+        <button class="split-right reb-defensive" onclick="recordAction('dreb')">
+          <span class="split-icon">DEF</span>
+          <span class="split-label">Reb</span>
+        </button>
+      </div>
+
+      <!-- Defensive Stats -->
+      <button class="action-btn stat-defensive" onclick="recordAction('stl')"><span class="btn-icon">S</span>Steal</button>
+      <button class="action-btn stat-defensive" onclick="recordAction('blk')"><span class="btn-icon">B</span>Block</button>
+
+      <!-- Offensive Stats -->
+      <button class="action-btn stat-offensive" onclick="recordAction('ast')"><span class="btn-icon">A</span>Assist</button>
+
+      <!-- Negative Stats -->
+      <button class="action-btn stat-negative" onclick="recordAction('to')"><span class="btn-icon">T</span>Turnover</button>
+      <button class="action-btn stat-negative" onclick="recordAction('fls')"><span class="btn-icon">F</span>Foul</button>
+    </div>
+
+    <div class="utility-actions">
+      <button class="util-btn undo-btn" onclick="undoAction()">
+        <span class="util-icon">&larr;</span>Undo Last
+      </button>
+      <button class="util-btn new-game-btn" onclick="confirmNewGame()">
+        <span class="util-icon">&times;</span>New Game
+      </button>
+      <button class="util-btn export-btn" onclick="exportCSV()">
+        <span class="util-icon">CSV</span>Export CSV
+      </button>
+      <button class="util-btn export-btn" onclick="exportPDF()">
+        <span class="util-icon">PDF</span>Export PDF
+      </button>
     </div>
   </div>
 
@@ -87,15 +164,15 @@
     <div class="stats-header">
       <div class="stats-title">Player Stats</div>
       <div class="stats-toggle">
-        <button class="active" onclick="showStats('home',this)" id="statsHomeBtn">Home</button>
-        <button onclick="showStats('away',this)" id="statsAwayBtn">Away</button>
-        <button onclick="showTutorial()" aria-label="Show tutorial" title="Show tutorial">?</button>
+        <button class="team-toggle active" onclick="showStats('home',this)" id="statsHomeBtn">Home</button>
+        <button class="team-toggle" onclick="showStats('away',this)" id="statsAwayBtn">Away</button>
+        <button class="help-toggle" onclick="showTutorial()" aria-label="Show tutorial" title="Show tutorial">?</button>
       </div>
     </div>
     <table class="stats-table">
       <thead>
         <tr>
-          <th>Player</th><th>#</th><th>PTS</th><th>2PM</th><th>3PM</th><th>FT</th><th>AST</th><th>REB</th><th>STL</th><th>BLK</th><th>FLS</th>
+          <th>Player</th><th>#</th><th>PTS</th><th>FGM</th><th>FGA</th><th>3PM</th><th>3PA</th><th>FTM</th><th>FTA</th><th>OREB</th><th>DREB</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>TO</th><th>FLS</th>
         </tr>
       </thead>
       <tbody id="statsBody"></tbody>
