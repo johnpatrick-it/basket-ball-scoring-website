@@ -602,6 +602,13 @@ function exportPDF() {
 var tutorialSteps = [
   {
     target: '.scoreboard',
+    title: 'Welcome! 👋',
+    text: 'Basketball Scorer by John Patrick Haguimit. A courtside scoring app for tracking live games. Check the footer for more projects!',
+    tip: 'This tutorial will guide you through all features. Let\'s get started!',
+    position: 'bottom'
+  },
+  {
+    target: '.scoreboard',
     title: 'Scoreboard & Timeouts',
     text: 'This is your live scoreboard. Click team names to rename them. Scores update automatically. Click timeout dots below each team to track timeouts used.',
     tip: 'Tap "HOME" or "AWAY" right now to type your team name.',

@@ -849,6 +849,56 @@ body::after{
 }
 .help-fab:active{transform:scale(.95)}
 
+/* ── FOOTER ── */
+.app-footer{
+  margin-top:32px;
+  padding:24px 0;
+  border-top:1px solid var(--border);
+}
+.footer-content{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+}
+.footer-text{
+  font-size:.85rem;
+  color:var(--text-dim);
+  text-align:center;
+}
+.footer-text strong{
+  color:var(--orange);
+  font-weight:600;
+}
+.footer-link{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-family:'DM Sans',sans-serif;
+  font-size:.8rem;
+  font-weight:600;
+  padding:8px 18px;
+  border:1px solid var(--border);
+  border-radius:24px;
+  background:var(--surface2);
+  color:var(--text);
+  text-decoration:none;
+  transition:all .2s;
+  letter-spacing:.03em;
+}
+.footer-link:hover{
+  border-color:var(--orange);
+  color:var(--orange);
+  background:var(--orange)11;
+  transform:translateY(-2px);
+  box-shadow:0 4px 12px var(--orange-glow);
+}
+.footer-link:active{transform:translateY(0)}
+.footer-icon{
+  font-size:1rem;
+  line-height:1;
+}
+
 /* ── RESPONSIVE ── */
 @media(max-width:500px){
   .app{padding:8px 10px 32px}
@@ -868,6 +918,8 @@ body::after{
   .add-player-row input{padding:6px 10px;font-size:.8rem}
   .period-controls{gap:2px}
   .tutorial-tooltip{max-width:calc(100vw - 24px);padding:16px 14px}
+  .footer-text{font-size:.8rem}
+  .footer-link{font-size:.75rem;padding:6px 14px}
 }
 @media(min-width:768px){
   .action-grid{grid-template-columns:repeat(3,1fr)}
