@@ -87,6 +87,31 @@ function toggleTimeout(team, index) {
   saveState();
 }
 
+function useTimeout(team) {
+  // Find first available timeout
+  var index = -1;
+  for (var i = 0; i < 5; i++) {
+    if (!state[team].timeouts[i]) {
+      index = i;
+      break;
+    }
+  }
+
+  if (index === -1) {
+    var teamName = team === 'home' ? state.homeName : state.awayName;
+    showToast(teamName + ' has no timeouts remaining', 'warning');
+    return;
+  }
+
+  state[team].timeouts[index] = true;
+  renderTimeouts(team);
+  saveState();
+
+  var teamName = team === 'home' ? state.homeName : state.awayName;
+  var remaining = 4 - index;
+  showToast(teamName + ' timeout called (' + remaining + ' remaining)', 'success');
+}
+
 function renderTimeouts(team) {
   for (var i = 0; i < 5; i++) {
     var dot = document.getElementById(team + 'Timeout' + i);
@@ -124,14 +149,29 @@ function addPlayer(team) {
   var numInput = document.getElementById(team + 'PlayerNum');
   var name = nameInput.value.trim();
   var num = numInput.value.trim();
-  if (!name) { nameInput.focus(); return; }
-  state[team].players.push(makePlayer(name, num || '0'));
+
+  if (!name) {
+    showToast('Please enter a player name', 'error');
+    nameInput.focus();
+    return;
+  }
+
+  if (!num) {
+    showToast('Please enter a jersey number', 'warning');
+    numInput.focus();
+    return;
+  }
+
+  state[team].players.push(makePlayer(name, num));
   nameInput.value = '';
   numInput.value = '';
   nameInput.focus();
   renderPlayers(team);
   renderStats();
   saveState();
+
+  var teamName = team === 'home' ? state.homeName : state.awayName;
+  showToast('#' + num + ' ' + name + ' added to ' + teamName, 'success');
 }
 
 function removePlayer(team, index) {
@@ -203,7 +243,7 @@ function updateActiveIndicator() {
 /* ── ACTIONS ── */
 function recordAction(type) {
   if (!state.activePlayer) {
-    showToast('Select a player first');
+    showToast('Please select a player first', 'error');
     return;
   }
   var team = state.activePlayer.team;
@@ -253,7 +293,7 @@ function recordAction(type) {
 
 function undoAction() {
   if (state.history.length === 0) {
-    showToast('Nothing to undo');
+    showToast('Nothing to undo', 'warning');
     return;
   }
   var action = state.history.pop();
@@ -322,7 +362,7 @@ function newGame() {
   // Save the reset state
   saveState();
 
-  showToast('New game started — all data cleared');
+  showToast('New game started — all data cleared', 'success');
 }
 
 /* ── SCORES ── */
@@ -470,7 +510,7 @@ function exportCSV() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast('Stats exported as CSV');
+  showToast('Stats exported as CSV', 'success');
 }
 
 function csvSafe(str) {
@@ -589,9 +629,9 @@ function exportPDF() {
   if (win) {
     win.document.write(html);
     win.document.close();
-    showToast('Game report opened \u2014 save as PDF from print dialog');
+    showToast('Game report opened — save as PDF from print dialog', 'success');
   } else {
-    showToast('Pop-up blocked \u2014 please allow pop-ups');
+    showToast('Pop-up blocked — please allow pop-ups', 'error');
   }
 }
 
@@ -681,7 +721,7 @@ function nextTutorialStep() {
   tutorialStep++;
   if (tutorialStep >= tutorialSteps.length) {
     closeTutorial();
-    showToast('Tutorial complete \u2014 you\'re ready to score!');
+    showToast('Tutorial complete — you\'re ready to score!', 'success');
     return;
   }
   positionSpotlight();
@@ -818,12 +858,23 @@ function esc(str) {
   return d.innerHTML;
 }
 
-function showToast(msg) {
+function showToast(msg, type) {
   var toast = document.getElementById('toast');
   toast.textContent = msg;
+
+  // Remove all type classes
+  toast.classList.remove('error', 'success', 'warning');
+
+  // Add type class if specified
+  if (type) {
+    toast.classList.add(type);
+  }
+
   toast.classList.add('show');
   clearTimeout(toast._t);
-  toast._t = setTimeout(function() { toast.classList.remove('show'); }, 2200);
+  toast._t = setTimeout(function() {
+    toast.classList.remove('show');
+  }, 2500);
 }
 
 function setupEnterKey(team) {

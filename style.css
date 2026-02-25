@@ -466,6 +466,26 @@ body::after{
   color:#ffc5c5;
   border-color:#a84a4a;
 }
+.timeout-home{
+  background:linear-gradient(135deg,#2d6a8a,#1e547080);
+  color:#a8d5ff;
+  border-color:#3d7fa844;
+}
+.timeout-home:hover{
+  background:linear-gradient(135deg,#3d7fa8,#2d6a8a);
+  color:#c5e4ff;
+  border-color:#3d7fa8;
+}
+.timeout-away{
+  background:linear-gradient(135deg,#6a2d8a,#541e7080);
+  color:#d5a8ff;
+  border-color:#7f3da844;
+}
+.timeout-away:hover{
+  background:linear-gradient(135deg,#7f3da8,#6a2d8a);
+  color:#e4c5ff;
+  border-color:#7f3da8;
+}
 
 /* Utility Actions */
 .utility-actions{
@@ -623,23 +643,38 @@ body::after{
 
 /* ── TOAST ── */
 .toast{
-  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
-  background:var(--surface3);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:10px 20px;
-  font-size:.85rem;
-  font-weight:500;
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(120px);
+  background:var(--surface);
+  border:2px solid var(--orange);
+  border-radius:12px;
+  padding:16px 28px;
+  font-size:1rem;
+  font-weight:600;
   color:var(--text);
   z-index:999;
   opacity:0;
   transition:all .3s cubic-bezier(.4,0,.2,1);
   pointer-events:none;
-  white-space:nowrap;
+  box-shadow:0 8px 32px #0008,0 0 20px var(--orange-glow);
+  max-width:90vw;
+  text-align:center;
+  line-height:1.4;
 }
 .toast.show{
   opacity:1;
   transform:translateX(-50%) translateY(0);
+}
+.toast.error{
+  border-color:var(--red);
+  box-shadow:0 8px 32px #0008,0 0 20px #e8404044;
+}
+.toast.success{
+  border-color:var(--green);
+  box-shadow:0 8px 32px #0008,0 0 20px #3ddc8444;
+}
+.toast.warning{
+  border-color:var(--amber);
+  box-shadow:0 8px 32px #0008,0 0 20px #f5a62344;
 }
 
 /* ── CONFIRM MODAL ── */
@@ -920,6 +955,7 @@ body::after{
   .tutorial-tooltip{max-width:calc(100vw - 24px);padding:16px 14px}
   .footer-text{font-size:.8rem}
   .footer-link{font-size:.75rem;padding:6px 14px}
+  .toast{font-size:.9rem;padding:14px 24px;max-width:85vw}
 }
 @media(min-width:768px){
   .action-grid{grid-template-columns:repeat(3,1fr)}
