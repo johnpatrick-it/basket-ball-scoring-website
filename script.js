@@ -12,7 +12,8 @@ var state = {
   away: { players: [], score: 0, timeouts: [false,false,false,false,false], teamFouls: 0 },
   history: [],
   activePlayer: null,
-  statsView: 'home'
+  statsView: 'home',
+  runningScoreCollapsed: false
 };
 
 function makePlayer(name, number) {
@@ -363,6 +364,7 @@ function recordAction(type) {
   updateScores();
   renderPlayers(team);
   renderStats();
+  renderRunningScore();
   saveState();
 
   var labels = {
@@ -409,6 +411,7 @@ function undoAction() {
   renderPlayers('home');
   renderPlayers('away');
   renderStats();
+  renderRunningScore();
   saveState();
   showToast('Undone: ' + action.type);
 }
@@ -460,6 +463,7 @@ function newGame() {
   renderTimeouts('home');
   renderTimeouts('away');
   updateTeamFouls();
+  renderRunningScore();
 
   // Save the reset state
   saveState();
@@ -477,6 +481,91 @@ function flashScore(team) {
   var el = document.getElementById(team + 'Score');
   el.classList.add('flash');
   setTimeout(function() { el.classList.remove('flash'); }, 200);
+}
+
+/* ── RUNNING SCORE ── */
+function toggleRunningScore() {
+  state.runningScoreCollapsed = !state.runningScoreCollapsed;
+  var content = document.getElementById('runningScoreContent');
+  var icon = document.getElementById('runningScoreIcon');
+
+  if (state.runningScoreCollapsed) {
+    content.classList.add('collapsed');
+    icon.classList.add('collapsed');
+  } else {
+    content.classList.remove('collapsed');
+    icon.classList.remove('collapsed');
+  }
+  saveState();
+}
+
+function renderRunningScore() {
+  var timeline = document.getElementById('runningScoreTimeline');
+  var count = document.getElementById('runningScoreCount');
+
+  // Filter only scoring plays
+  var scoringPlays = state.history.filter(function(action) {
+    return action.type === 'pts2' || action.type === 'pts3' || action.type === 'ft';
+  });
+
+  count.textContent = scoringPlays.length + ' play' + (scoringPlays.length !== 1 ? 's' : '');
+
+  if (scoringPlays.length === 0) {
+    timeline.innerHTML = '<div class="no-plays-message">No scoring plays yet. Start recording points!</div>';
+    return;
+  }
+
+  timeline.innerHTML = '';
+
+  // Show most recent first (reverse order)
+  var reversedPlays = scoringPlays.slice().reverse();
+
+  reversedPlays.forEach(function(action) {
+    var player = state[action.team].players[action.index];
+    if (!player) return;
+
+    var teamName = action.team === 'home' ? state.homeName : state.awayName;
+    var actionLabel = '';
+
+    if (action.type === 'pts2') actionLabel = '2-Point Made';
+    else if (action.type === 'pts3') actionLabel = '3-Point Made';
+    else if (action.type === 'ft') actionLabel = 'Free Throw Made';
+
+    // Calculate running score at this point by replaying history up to this action
+    var runningHome = 0;
+    var runningAway = 0;
+
+    for (var i = 0; i < state.history.length; i++) {
+      var h = state.history[i];
+      if (h.timestamp > action.timestamp) break;
+
+      if (h.type === 'pts2') {
+        if (h.team === 'home') runningHome += 2;
+        else runningAway += 2;
+      } else if (h.type === 'pts3') {
+        if (h.team === 'home') runningHome += 3;
+        else runningAway += 3;
+      } else if (h.type === 'ft') {
+        if (h.team === 'home') runningHome += 1;
+        else runningAway += 1;
+      }
+    }
+
+    var playDiv = document.createElement('div');
+    playDiv.className = 'play-item ' + (action.team === 'home' ? 'home-play' : 'away-play');
+
+    playDiv.innerHTML =
+      '<div class="play-info">' +
+        '<div class="play-player">#' + esc(player.number) + ' ' + esc(player.name) + ' (' + teamName + ')</div>' +
+        '<div class="play-action">' + actionLabel + '</div>' +
+      '</div>' +
+      '<div class="play-score">' + runningHome + '-' + runningAway + '</div>';
+
+    timeline.appendChild(playDiv);
+  });
+
+  // Auto-scroll to top (newest plays)
+  timeline.scrollTop = 0;
 }
 
 /* ── STATS TABLE ── */
@@ -823,6 +912,13 @@ var tutorialSteps = [
     text: 'Full player stats are shown here with FG%, 3P%, offensive/defensive rebounds, turnovers, and more. Toggle between Home and Away teams.',
     tip: 'Export as CSV for spreadsheets, or PDF for a printable game report.',
     position: 'top'
+  },
+  {
+    target: '.running-score-section',
+    title: 'Running Score',
+    text: 'See every scoring play in chronological order with the score after each basket. Perfect for tracking momentum and game flow.',
+    tip: 'Click the header to collapse/expand. Most recent plays appear at the top.',
+    position: 'top'
   }
 ];
 
@@ -1027,8 +1123,15 @@ function init() {
   renderTimeouts('away');
   updateTeamFouls();
   showStats(state.statsView);
+  renderRunningScore();
   setupEnterKey('home');
   setupEnterKey('away');
+
+  // Restore collapsed state
+  if (state.runningScoreCollapsed) {
+    document.getElementById('runningScoreContent').classList.add('collapsed');
+    document.getElementById('runningScoreIcon').classList.add('collapsed');
+  }
 
   document.getElementById('homePanelTitle').textContent = state.homeName + ' ROSTER';
   document.getElementById('awayPanelTitle').textContent = state.awayName + ' ROSTER';

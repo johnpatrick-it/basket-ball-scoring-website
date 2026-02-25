@@ -585,6 +585,146 @@ body::after{
 .util-btn.export-btn{border-color:var(--green)44}
 .util-btn.export-btn:hover{border-color:var(--green);color:var(--green)}
 
+/* ── RUNNING SCORE ── */
+.running-score-section{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px;
+  margin-bottom:16px;
+}
+.running-score-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  cursor:pointer;
+  user-select:none;
+  padding:4px 0;
+  transition:all .2s;
+}
+.running-score-header:hover{
+  color:var(--orange);
+}
+.running-score-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.2rem;
+  letter-spacing:.06em;
+  color:var(--orange);
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.collapse-icon{
+  font-size:.9rem;
+  transition:transform .3s;
+  display:inline-block;
+}
+.collapse-icon.collapsed{
+  transform:rotate(-90deg);
+}
+.running-score-count{
+  font-size:.75rem;
+  color:var(--text-dim);
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.running-score-content{
+  max-height:400px;
+  overflow:hidden;
+  transition:max-height .3s ease-out;
+}
+.running-score-content.collapsed{
+  max-height:0;
+}
+.running-score-timeline{
+  margin-top:12px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  max-height:380px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-right:4px;
+}
+.running-score-timeline::-webkit-scrollbar{
+  width:6px;
+}
+.running-score-timeline::-webkit-scrollbar-track{
+  background:var(--surface2);
+  border-radius:3px;
+}
+.running-score-timeline::-webkit-scrollbar-thumb{
+  background:var(--border);
+  border-radius:3px;
+}
+.running-score-timeline::-webkit-scrollbar-thumb:hover{
+  background:var(--orange);
+}
+.no-plays-message{
+  text-align:center;
+  color:var(--text-dim);
+  font-style:italic;
+  padding:20px;
+  font-size:.85rem;
+}
+.play-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 14px;
+  border-radius:var(--radius-sm);
+  border-left:3px solid var(--orange);
+  gap:12px;
+  transition:all .15s;
+  animation:slide-in .3s ease-out;
+}
+@keyframes slide-in{
+  from{
+    opacity:0;
+    transform:translateX(-20px);
+  }
+  to{
+    opacity:1;
+    transform:translateX(0);
+  }
+}
+.play-item:hover{
+  background:var(--surface3);
+  transform:translateX(2px);
+}
+.play-item.home-play{
+  background:linear-gradient(90deg,#2d6a8a18,transparent);
+  border-left-color:#2d6a8a;
+}
+.play-item.away-play{
+  background:linear-gradient(90deg,#6a2d8a18,transparent);
+  border-left-color:#6a2d8a;
+}
+.play-info{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.play-player{
+  font-size:.85rem;
+  font-weight:600;
+  color:var(--text);
+}
+.play-action{
+  font-size:.7rem;
+  color:var(--text-dim);
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.play-score{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.3rem;
+  color:var(--orange);
+  white-space:nowrap;
+  letter-spacing:.02em;
+}
+
 /* ── STATS TABLE ── */
 .stats-section{
   background:var(--surface);
@@ -1063,6 +1203,11 @@ body::after{
   .foul-status{font-size:.5rem}
   .score-num{font-size:1.6rem}
   .period-change-icon{font-size:2.5rem}
+  .play-item{padding:8px 10px;gap:8px}
+  .play-player{font-size:.8rem}
+  .play-action{font-size:.65rem}
+  .play-score{font-size:1.1rem}
+  .running-score-title{font-size:1.1rem}
 }
 @media(min-width:768px){
   .action-grid{grid-template-columns:repeat(3,1fr)}
