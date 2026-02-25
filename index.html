@@ -27,6 +27,11 @@
             <button class="timeout-dot" onclick="toggleTimeout('home',4)" id="homeTimeout4"></button>
           </div>
         </div>
+        <div class="foul-counter">
+          <span class="foul-label">Team Fouls</span>
+          <div class="foul-count" id="homeFoulCount">0</div>
+          <span class="foul-status" id="homeFoulStatus"></span>
+        </div>
       </div>
       <div class="center-info">
         <div class="period-label" id="periodLabel">Q1</div>
@@ -48,6 +53,11 @@
             <button class="timeout-dot" onclick="toggleTimeout('away',3)" id="awayTimeout3"></button>
             <button class="timeout-dot" onclick="toggleTimeout('away',4)" id="awayTimeout4"></button>
           </div>
+        </div>
+        <div class="foul-counter">
+          <span class="foul-label">Team Fouls</span>
+          <div class="foul-count" id="awayFoulCount">0</div>
+          <span class="foul-status" id="awayFoulStatus"></span>
         </div>
       </div>
     </div>
@@ -88,76 +98,84 @@
     <div class="no-player-warning" id="noPlayerWarning">Select a player from a roster above to record stats</div>
     <div class="action-grid">
       <!-- Scoring -->
-      <div class="split-btn">
-        <button class="split-left scoring-make" onclick="recordAction('pts2')">
+      <div class="split-btn" title="2-Point Field Goal">
+        <button class="split-left scoring-make" onclick="recordAction('pts2')" title="2-Point Made">
           <span class="split-icon">2</span>
           <span class="split-label">Made</span>
         </button>
-        <button class="split-right scoring-miss" onclick="recordAction('miss2')">
+        <button class="split-right scoring-miss" onclick="recordAction('miss2')" title="2-Point Miss">
           <span class="split-icon">✕</span>
           <span class="split-label">Miss</span>
         </button>
       </div>
-      <div class="split-btn">
-        <button class="split-left scoring-make" onclick="recordAction('pts3')">
+      <div class="split-btn" title="3-Point Field Goal">
+        <button class="split-left scoring-make" onclick="recordAction('pts3')" title="3-Point Made">
           <span class="split-icon">3</span>
           <span class="split-label">Made</span>
         </button>
-        <button class="split-right scoring-miss" onclick="recordAction('miss3')">
+        <button class="split-right scoring-miss" onclick="recordAction('miss3')" title="3-Point Miss">
           <span class="split-icon">✕</span>
           <span class="split-label">Miss</span>
         </button>
       </div>
-      <div class="split-btn">
-        <button class="split-left scoring-make" onclick="recordAction('ft')">
+      <div class="split-btn" title="Free Throw">
+        <button class="split-left scoring-make" onclick="recordAction('ft')" title="Free Throw Made">
           <span class="split-icon">FT</span>
           <span class="split-label">Made</span>
         </button>
-        <button class="split-right scoring-miss" onclick="recordAction('missft')">
+        <button class="split-right scoring-miss" onclick="recordAction('missft')" title="Free Throw Miss">
           <span class="split-icon">✕</span>
           <span class="split-label">Miss</span>
         </button>
       </div>
 
       <!-- Rebounds -->
-      <div class="split-btn">
-        <button class="split-left reb-offensive" onclick="recordAction('oreb')">
+      <div class="split-btn" title="Rebounds">
+        <button class="split-left reb-offensive" onclick="recordAction('oreb')" title="Offensive Rebound">
           <span class="split-icon">OFF</span>
           <span class="split-label">Reb</span>
         </button>
-        <button class="split-right reb-defensive" onclick="recordAction('dreb')">
+        <button class="split-right reb-defensive" onclick="recordAction('dreb')" title="Defensive Rebound">
           <span class="split-icon">DEF</span>
           <span class="split-label">Reb</span>
         </button>
       </div>
 
       <!-- Defensive Stats -->
-      <button class="action-btn stat-defensive" onclick="recordAction('stl')"><span class="btn-icon">S</span>Steal</button>
-      <button class="action-btn stat-defensive" onclick="recordAction('blk')"><span class="btn-icon">B</span>Block</button>
+      <button class="action-btn stat-defensive" onclick="recordAction('stl')" title="Steal"><span class="btn-icon">S</span>Steal</button>
+      <button class="action-btn stat-defensive" onclick="recordAction('blk')" title="Block"><span class="btn-icon">B</span>Block</button>
 
       <!-- Offensive Stats -->
-      <button class="action-btn stat-offensive" onclick="recordAction('ast')"><span class="btn-icon">A</span>Assist</button>
+      <button class="action-btn stat-offensive" onclick="recordAction('ast')" title="Assist"><span class="btn-icon">A</span>Assist</button>
 
       <!-- Negative Stats -->
-      <button class="action-btn stat-negative" onclick="recordAction('to')"><span class="btn-icon">T</span>Turnover</button>
-      <button class="action-btn stat-negative" onclick="recordAction('fls')"><span class="btn-icon">F</span>Foul</button>
+      <button class="action-btn stat-negative" onclick="recordAction('to')" title="Turnover"><span class="btn-icon">T</span>Turnover</button>
+      <button class="action-btn stat-negative" onclick="recordAction('fls')" title="Personal Foul"><span class="btn-icon">F</span>Foul</button>
 
       <!-- Timeouts -->
-      <button class="action-btn timeout-home" onclick="useTimeout('home')"><span class="btn-icon">⏱</span>Home TO</button>
-      <button class="action-btn timeout-away" onclick="useTimeout('away')"><span class="btn-icon">⏱</span>Away TO</button>
+      <div class="split-btn" title="Team Timeout">
+        <button class="split-left timeout-home" onclick="useTimeout('home')" title="Call Home Team Timeout">
+          <span class="split-icon">⏱</span>
+          <span class="split-label">Home TO</span>
+        </button>
+        <button class="split-right timeout-away" onclick="useTimeout('away')" title="Call Away Team Timeout">
+          <span class="split-icon">⏱</span>
+          <span class="split-label">Away TO</span>
+        </button>
+      </div>
     </div>
 
     <div class="utility-actions">
-      <button class="util-btn undo-btn" onclick="undoAction()">
+      <button class="util-btn undo-btn" onclick="undoAction()" title="Undo Last Action">
         <span class="util-icon">&larr;</span>Undo Last
       </button>
-      <button class="util-btn new-game-btn" onclick="confirmNewGame()">
+      <button class="util-btn new-game-btn" onclick="confirmNewGame()" title="Start New Game (Clear All Data)">
         <span class="util-icon">&times;</span>New Game
       </button>
-      <button class="util-btn export-btn" onclick="exportCSV()">
+      <button class="util-btn export-btn" onclick="exportCSV()" title="Export Stats as CSV File">
         <span class="util-icon">CSV</span>Export CSV
       </button>
-      <button class="util-btn export-btn" onclick="exportPDF()">
+      <button class="util-btn export-btn" onclick="exportPDF()" title="Export Game Report as PDF">
         <span class="util-icon">PDF</span>Export PDF
       </button>
     </div>
@@ -170,13 +188,30 @@
       <div class="stats-toggle">
         <button class="team-toggle active" onclick="showStats('home',this)" id="statsHomeBtn">Home</button>
         <button class="team-toggle" onclick="showStats('away',this)" id="statsAwayBtn">Away</button>
+        <button class="team-toggle" onclick="showStats('both',this)" id="statsBothBtn">Both</button>
         <button class="help-toggle" onclick="showTutorial()" aria-label="Show tutorial" title="Show tutorial">?</button>
       </div>
     </div>
     <table class="stats-table">
       <thead>
         <tr>
-          <th>Player</th><th>#</th><th>PTS</th><th>FGM</th><th>FGA</th><th>3PM</th><th>3PA</th><th>FTM</th><th>FTA</th><th>OREB</th><th>DREB</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>TO</th><th>FLS</th>
+          <th>Player</th>
+          <th title="Jersey Number">#</th>
+          <th title="Points">PTS</th>
+          <th title="Field Goals Made">FGM</th>
+          <th title="Field Goals Attempted">FGA</th>
+          <th title="3-Pointers Made">3PM</th>
+          <th title="3-Pointers Attempted">3PA</th>
+          <th title="Free Throws Made">FTM</th>
+          <th title="Free Throws Attempted">FTA</th>
+          <th title="Offensive Rebounds">OREB</th>
+          <th title="Defensive Rebounds">DREB</th>
+          <th title="Total Rebounds">REB</th>
+          <th title="Assists">AST</th>
+          <th title="Steals">STL</th>
+          <th title="Blocks">BLK</th>
+          <th title="Turnovers">TO</th>
+          <th title="Personal Fouls">FLS</th>
         </tr>
       </thead>
       <tbody id="statsBody"></tbody>
@@ -201,10 +236,33 @@
 <div class="modal-overlay" id="confirmModal">
   <div class="modal-box">
     <h3>New Game</h3>
-    <p>Reset all scores and stats? Rosters will be kept.</p>
+    <p>This will clear all data: team names, rosters, scores, stats, and timeouts. Start completely fresh?</p>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-      <button class="btn-confirm" onclick="newGame()">Reset</button>
+      <button class="btn-confirm" onclick="newGame()">Clear All</button>
+    </div>
+  </div>
+</div>
+
+<!-- Period Change Modal -->
+<div class="modal-overlay" id="periodModal">
+  <div class="modal-box period-change-modal">
+    <div class="period-change-icon">⏱️</div>
+    <h3 id="periodChangeTitle">Quarter 2</h3>
+    <p id="periodChangeMessage">Team fouls reset. Ready to continue?</p>
+    <div class="score-summary">
+      <div class="score-summary-item">
+        <span class="score-team" id="periodHomeTeam">HOME</span>
+        <span class="score-num" id="periodHomeScore">0</span>
+      </div>
+      <div class="score-vs">-</div>
+      <div class="score-summary-item">
+        <span class="score-team" id="periodAwayTeam">AWAY</span>
+        <span class="score-num" id="periodAwayScore">0</span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-confirm single" onclick="closePeriodModal()">Continue</button>
     </div>
   </div>
 </div>

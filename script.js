@@ -8,8 +8,8 @@ var state = {
   awayName: 'AWAY',
   periodIndex: 0,
   overtimeCount: 0,
-  home: { players: [], score: 0, timeouts: [false,false,false,false,false] },
-  away: { players: [], score: 0, timeouts: [false,false,false,false,false] },
+  home: { players: [], score: 0, timeouts: [false,false,false,false,false], teamFouls: 0 },
+  away: { players: [], score: 0, timeouts: [false,false,false,false,false], teamFouls: 0 },
   history: [],
   activePlayer: null,
   statsView: 'home'
@@ -39,6 +39,12 @@ function loadState() {
       // Initialize timeouts if missing (backward compatibility)
       if (!state.home.timeouts) state.home.timeouts = [false,false,false,false,false];
       if (!state.away.timeouts) state.away.timeouts = [false,false,false,false,false];
+      // Initialize team fouls if missing (backward compatibility)
+      if (state.home.teamFouls === undefined) state.home.teamFouls = 0;
+      if (state.away.teamFouls === undefined) state.away.teamFouls = 0;
+      // Cap team fouls at 5
+      if (state.home.teamFouls > 5) state.home.teamFouls = 5;
+      if (state.away.teamFouls > 5) state.away.teamFouls = 5;
       // Initialize new stat fields for existing players (backward compatibility)
       ['home', 'away'].forEach(function(team) {
         if (state[team].players) {
@@ -64,20 +70,83 @@ function getPeriodLabel() {
 
 function nextPeriod() {
   state.periodIndex++;
+  // Reset team fouls on new quarter
+  state.home.teamFouls = 0;
+  state.away.teamFouls = 0;
   updatePeriod();
+  updateTeamFouls();
   saveState();
+  showPeriodChangeModal();
 }
 
 function prevPeriod() {
   if (state.periodIndex > 0) {
     state.periodIndex--;
+    // Reset team fouls on quarter change
+    state.home.teamFouls = 0;
+    state.away.teamFouls = 0;
     updatePeriod();
+    updateTeamFouls();
     saveState();
+    showPeriodChangeModal();
   }
 }
 
 function updatePeriod() {
   document.getElementById('periodLabel').textContent = getPeriodLabel();
+}
+
+function showPeriodChangeModal() {
+  var periodLabel = getPeriodLabel();
+  var periodName = periodLabel;
+  if (periodLabel === 'Q1') periodName = 'Quarter 1';
+  else if (periodLabel === 'Q2') periodName = 'Quarter 2';
+  else if (periodLabel === 'Q3') periodName = 'Quarter 3';
+  else if (periodLabel === 'Q4') periodName = 'Quarter 4';
+  else periodName = 'Overtime ' + (state.periodIndex - 3);
+
+  document.getElementById('periodChangeTitle').textContent = periodName;
+  document.getElementById('periodChangeMessage').textContent = 'Team fouls reset. Ready to continue?';
+  document.getElementById('periodHomeTeam').textContent = state.homeName;
+  document.getElementById('periodAwayTeam').textContent = state.awayName;
+  document.getElementById('periodHomeScore').textContent = state.home.score;
+  document.getElementById('periodAwayScore').textContent = state.away.score;
+  document.getElementById('periodModal').classList.add('show');
+}
+
+function closePeriodModal() {
+  document.getElementById('periodModal').classList.remove('show');
+}
+
+function updateTeamFouls() {
+  var homeCount = document.getElementById('homeFoulCount');
+  var awayCount = document.getElementById('awayFoulCount');
+  var homeStatus = document.getElementById('homeFoulStatus');
+  var awayStatus = document.getElementById('awayFoulStatus');
+
+  homeCount.textContent = state.home.teamFouls;
+  awayCount.textContent = state.away.teamFouls;
+
+  // Add visual indicator for bonus/penalty
+  homeCount.className = 'foul-count';
+  homeStatus.textContent = '';
+  if (state.home.teamFouls >= 5) {
+    homeCount.classList.add('penalty');
+    homeStatus.textContent = 'PENALTY';
+  } else if (state.home.teamFouls >= 4) {
+    homeCount.classList.add('bonus');
+    homeStatus.textContent = 'BONUS';
+  }
+
+  awayCount.className = 'foul-count';
+  awayStatus.textContent = '';
+  if (state.away.teamFouls >= 5) {
+    awayCount.classList.add('penalty');
+    awayStatus.textContent = 'PENALTY';
+  } else if (state.away.teamFouls >= 4) {
+    awayCount.classList.add('bonus');
+    awayStatus.textContent = 'BONUS';
+  }
 }
 
 /* ── TIMEOUTS ── */
@@ -267,7 +336,21 @@ function recordAction(type) {
     case 'stl':  player.stl++; break;
     case 'blk':  player.blk++; break;
     case 'to':   player.to++; break;
-    case 'fls':  player.fls++; break;
+    case 'fls':
+      player.fls++;
+      if (state[team].teamFouls < 5) {
+        state[team].teamFouls++;
+      }
+      updateTeamFouls();
+
+      // Warning when reaching team foul limit
+      if (state[team].teamFouls === 5) {
+        var teamName = team === 'home' ? state.homeName : state.awayName;
+        setTimeout(function() {
+          showToast(teamName + ' has reached 5 team fouls - PENALTY!', 'warning');
+        }, 500);
+      }
+      break;
   }
 
   if (points > 0) {
@@ -313,7 +396,13 @@ function undoAction() {
     case 'stl':  player.stl--; break;
     case 'blk':  player.blk--; break;
     case 'to':   player.to--; break;
-    case 'fls':  player.fls--; break;
+    case 'fls':
+      player.fls--;
+      if (state[action.team].teamFouls > 0) {
+        state[action.team].teamFouls--;
+      }
+      updateTeamFouls();
+      break;
   }
 
   updateScores();
@@ -341,6 +430,8 @@ function newGame() {
   state.away.score = 0;
   state.home.timeouts = [false,false,false,false,false];
   state.away.timeouts = [false,false,false,false,false];
+  state.home.teamFouls = 0;
+  state.away.teamFouls = 0;
   state.periodIndex = 0;
   state.history = [];
   state.activePlayer = null;
@@ -348,6 +439,16 @@ function newGame() {
   // Clear all players
   state.home.players = [];
   state.away.players = [];
+
+  // Reset team names
+  state.homeName = 'HOME';
+  state.awayName = 'AWAY';
+  document.getElementById('homeName').value = 'HOME';
+  document.getElementById('awayName').value = 'AWAY';
+  document.getElementById('homePanelTitle').textContent = 'HOME ROSTER';
+  document.getElementById('awayPanelTitle').textContent = 'AWAY ROSTER';
+  document.getElementById('statsHomeBtn').textContent = 'HOME';
+  document.getElementById('statsAwayBtn').textContent = 'AWAY';
 
   // Update all UI elements
   updateScores();
@@ -358,6 +459,7 @@ function newGame() {
   updateActiveIndicator();
   renderTimeouts('home');
   renderTimeouts('away');
+  updateTeamFouls();
 
   // Save the reset state
   saveState();
@@ -387,13 +489,38 @@ function showStats(team, btn) {
 
 function renderStats() {
   var tbody = document.getElementById('statsBody');
-  var team = state.statsView;
-  var players = state[team].players;
+  var view = state.statsView;
   tbody.innerHTML = '';
 
-  if (players.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;color:var(--text-dim);padding:20px;font-style:italic">No players added yet</td></tr>';
-    return;
+  if (view === 'both') {
+    // Show both teams
+    renderTeamStats('home', tbody, true);
+    renderTeamStats('away', tbody, true);
+  } else {
+    // Show single team
+    var players = state[view].players;
+    if (players.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;color:var(--text-dim);padding:20px;font-style:italic">No players added yet</td></tr>';
+      return;
+    }
+    renderTeamStats(view, tbody, false);
+  }
+}
+
+function renderTeamStats(team, tbody, addHeader) {
+  var players = state[team].players;
+  var teamName = team === 'home' ? state.homeName : state.awayName;
+
+  if (players.length === 0 && addHeader) {
+    return; // Skip empty teams in both view
+  }
+
+  // Add team header for "both" view
+  if (addHeader) {
+    var headerRow = document.createElement('tr');
+    headerRow.className = 'team-header-row';
+    headerRow.innerHTML = '<td colspan="17" style="text-align:left;font-weight:700;font-size:.9rem;color:var(--orange);padding:10px 8px;background:var(--surface2)">' + teamName + ' (Score: ' + state[team].score + ')</td>';
+    tbody.appendChild(headerRow);
   }
 
   var totals = { pts: 0, pts2: 0, pts3: 0, ft: 0, miss2: 0, miss3: 0, missft: 0, ast: 0, oreb: 0, dreb: 0, stl: 0, blk: 0, to: 0, fls: 0 };
@@ -898,6 +1025,7 @@ function init() {
   updateActiveIndicator();
   renderTimeouts('home');
   renderTimeouts('away');
+  updateTeamFouls();
   showStats(state.statsView);
   setupEnterKey('home');
   setupEnterKey('away');
@@ -910,6 +1038,11 @@ function init() {
   if (state.statsView === 'away') {
     document.getElementById('statsHomeBtn').classList.remove('active');
     document.getElementById('statsAwayBtn').classList.add('active');
+    document.getElementById('statsBothBtn').classList.remove('active');
+  } else if (state.statsView === 'both') {
+    document.getElementById('statsHomeBtn').classList.remove('active');
+    document.getElementById('statsAwayBtn').classList.remove('active');
+    document.getElementById('statsBothBtn').classList.add('active');
   }
 
   // Show tutorial on first visit
