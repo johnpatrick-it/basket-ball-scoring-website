@@ -248,8 +248,32 @@ function addPlayer(team) {
     return;
   }
 
+  // Sanitize jersey number: remove non-numeric characters
+  var sanitizedNum = num.replace(/\D/g, '');
+
+  // Validate jersey number
+  if (!sanitizedNum) {
+    showToast('Jersey number must contain at least one digit', 'error');
+    numInput.focus();
+    numInput.select();
+    return;
+  }
+
+  var jerseyNumber = parseInt(sanitizedNum, 10);
+
+  // Check if it's a valid positive integer within range
+  if (isNaN(jerseyNumber) || jerseyNumber < 0 || jerseyNumber > 999) {
+    showToast('Jersey number must be between 0 and 999', 'error');
+    numInput.focus();
+    numInput.select();
+    return;
+  }
+
+  // Update the input to show sanitized value
+  numInput.value = sanitizedNum;
+
   // Check for duplicate jersey number on the same team
-  var duplicate = state[team].players.some(function(p) { return p.number === num; });
+  var duplicate = state[team].players.some(function(p) { return p.number === sanitizedNum; });
   if (duplicate) {
     showToast('Jersey #' + num + ' is already taken on this team', 'error');
     numInput.focus();
