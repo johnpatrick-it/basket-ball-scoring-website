@@ -98,69 +98,74 @@
     <div class="no-player-warning" id="noPlayerWarning">Select a player from a roster above to record stats</div>
     <div class="action-grid">
       <!-- Scoring -->
-      <div class="split-btn" title="2-Point Field Goal">
-        <button class="split-left scoring-make" onclick="recordAction('pts2')" title="2-Point Made">
+      <div class="split-btn">
+        <span class="split-title">2-Point Field Goal</span>
+        <button class="split-left scoring-make" onclick="recordAction('pts2')">
           <span class="split-icon">2</span>
           <span class="split-label">Made</span>
         </button>
-        <button class="split-right scoring-miss" onclick="recordAction('miss2')" title="2-Point Miss">
+        <button class="split-right scoring-miss" onclick="recordAction('miss2')">
           <span class="split-icon">✕</span>
           <span class="split-label">Miss</span>
         </button>
       </div>
-      <div class="split-btn" title="3-Point Field Goal">
-        <button class="split-left scoring-make" onclick="recordAction('pts3')" title="3-Point Made">
+      <div class="split-btn">
+        <span class="split-title">3-Point Field Goal</span>
+        <button class="split-left scoring-make" onclick="recordAction('pts3')">
           <span class="split-icon">3</span>
           <span class="split-label">Made</span>
         </button>
-        <button class="split-right scoring-miss" onclick="recordAction('miss3')" title="3-Point Miss">
+        <button class="split-right scoring-miss" onclick="recordAction('miss3')">
           <span class="split-icon">✕</span>
           <span class="split-label">Miss</span>
         </button>
       </div>
-      <div class="split-btn" title="Free Throw">
-        <button class="split-left scoring-make" onclick="recordAction('ft')" title="Free Throw Made">
+      <div class="split-btn">
+        <span class="split-title">Free Throw</span>
+        <button class="split-left scoring-make" onclick="recordAction('ft')">
           <span class="split-icon">FT</span>
           <span class="split-label">Made</span>
         </button>
-        <button class="split-right scoring-miss" onclick="recordAction('missft')" title="Free Throw Miss">
+        <button class="split-right scoring-miss" onclick="recordAction('missft')">
           <span class="split-icon">✕</span>
           <span class="split-label">Miss</span>
         </button>
       </div>
 
       <!-- Rebounds -->
-      <div class="split-btn" title="Rebounds">
-        <button class="split-left reb-offensive" onclick="recordAction('oreb')" title="Offensive Rebound">
+      <div class="split-btn">
+        <span class="split-title">Rebounds</span>
+        <button class="split-left reb-offensive" onclick="recordAction('oreb')">
           <span class="split-icon">OFF</span>
-          <span class="split-label">Reb</span>
+          <span class="split-label">Offensive</span>
         </button>
-        <button class="split-right reb-defensive" onclick="recordAction('dreb')" title="Defensive Rebound">
+        <button class="split-right reb-defensive" onclick="recordAction('dreb')">
           <span class="split-icon">DEF</span>
-          <span class="split-label">Reb</span>
+          <span class="split-label">Defensive</span>
         </button>
       </div>
 
       <!-- Defensive Stats -->
-      <button class="action-btn stat-defensive" onclick="recordAction('stl')" title="Steal"><span class="btn-icon">S</span>Steal</button>
-      <button class="action-btn stat-defensive" onclick="recordAction('blk')" title="Block"><span class="btn-icon">B</span>Block</button>
+      <button class="action-btn stat-defensive" onclick="recordAction('stl')"><span class="btn-icon">S</span>Steal</button>
+      <button class="action-btn stat-defensive" onclick="recordAction('blk')"><span class="btn-icon">B</span>Block</button>
 
       <!-- Offensive Stats -->
-      <button class="action-btn stat-offensive" onclick="recordAction('ast')" title="Assist"><span class="btn-icon">A</span>Assist</button>
+      <button class="action-btn stat-offensive" onclick="recordAction('ast')"><span class="btn-icon">A</span>Assist</button>
 
       <!-- Negative Stats -->
-      <button class="action-btn stat-negative" onclick="recordAction('to')" title="Turnover"><span class="btn-icon">T</span>Turnover</button>
-      <button class="action-btn stat-negative" onclick="recordAction('fls')" title="Personal Foul"><span class="btn-icon">F</span>Foul</button>
+      <button class="action-btn stat-negative" onclick="recordAction('to')"><span class="btn-icon">T</span>Turnover</button>
+      <button class="action-btn stat-negative" onclick="recordAction('fls')"><span class="btn-icon">F</span>Foul</button>
 
       <!-- Timeouts -->
-      <div class="split-btn" title="Team Timeout">
-        <button class="split-left timeout-home" onclick="useTimeout('home')" title="Call Home Team Timeout">
+      <div class="split-btn">
+        <span class="split-title">Team Timeout</span>
+        <button class="split-left timeout-home" onclick="useTimeout('home')">
           <span class="split-icon">⏱</span>
-          <span class="split-label">Home TO</span>
+          <span class="split-label">Home</span>
         </button>
-        <button class="split-right timeout-away" onclick="useTimeout('away')" title="Call Away Team Timeout">
+        <button class="split-right timeout-away" onclick="useTimeout('away')">
           <span class="split-icon">⏱</span>
-          <span class="split-label">Away TO</span>
+          <span class="split-label">Away</span>
         </button>
       </div>
     </div>
@@ -196,22 +201,22 @@
       <thead>
         <tr>
           <th>Player</th>
-          <th title="Jersey Number">#</th>
-          <th title="Points">PTS</th>
-          <th title="Field Goals Made">FGM</th>
-          <th title="Field Goals Attempted">FGA</th>
-          <th title="3-Pointers Made">3PM</th>
-          <th title="3-Pointers Attempted">3PA</th>
-          <th title="Free Throws Made">FTM</th>
-          <th title="Free Throws Attempted">FTA</th>
-          <th title="Offensive Rebounds">OREB</th>
-          <th title="Defensive Rebounds">DREB</th>
-          <th title="Total Rebounds">REB</th>
-          <th title="Assists">AST</th>
-          <th title="Steals">STL</th>
-          <th title="Blocks">BLK</th>
-          <th title="Turnovers">TO</th>
-          <th title="Personal Fouls">FLS</th>
+          <th data-full="Jersey Number">#</th>
+          <th data-full="Points">PTS</th>
+          <th data-full="Field Goals Made">FGM</th>
+          <th data-full="Field Goals Attempted">FGA</th>
+          <th data-full="3-Pointers Made">3PM</th>
+          <th data-full="3-Pointers Attempted">3PA</th>
+          <th data-full="Free Throws Made">FTM</th>
+          <th data-full="Free Throws Attempted">FTA</th>
+          <th data-full="Offensive Rebounds">OREB</th>
+          <th data-full="Defensive Rebounds">DREB</th>
+          <th data-full="Total Rebounds">REB</th>
+          <th data-full="Assists">AST</th>
+          <th data-full="Steals">STL</th>
+          <th data-full="Blocks">BLK</th>
+          <th data-full="Turnovers">TO</th>
+          <th data-full="Personal Fouls">FLS</th>
         </tr>
       </thead>
       <tbody id="statsBody"></tbody>

@@ -11,6 +11,7 @@ var state = {
   home: { players: [], score: 0, timeouts: [false,false,false,false,false], teamFouls: 0 },
   away: { players: [], score: 0, timeouts: [false,false,false,false,false], teamFouls: 0 },
   history: [],
+  foulHistory: {},
   activePlayer: null,
   statsView: 'home',
   runningScoreCollapsed: false
@@ -43,9 +44,7 @@ function loadState() {
       // Initialize team fouls if missing (backward compatibility)
       if (state.home.teamFouls === undefined) state.home.teamFouls = 0;
       if (state.away.teamFouls === undefined) state.away.teamFouls = 0;
-      // Cap team fouls at 5
-      if (state.home.teamFouls > 5) state.home.teamFouls = 5;
-      if (state.away.teamFouls > 5) state.away.teamFouls = 5;
+      if (!state.foulHistory) state.foulHistory = {};
       // Initialize new stat fields for existing players (backward compatibility)
       ['home', 'away'].forEach(function(team) {
         if (state[team].players) {
@@ -70,10 +69,20 @@ function getPeriodLabel() {
 }
 
 function nextPeriod() {
+  // Save current quarter's fouls before moving on
+  state.foulHistory[state.periodIndex] = {
+    home: state.home.teamFouls,
+    away: state.away.teamFouls
+  };
   state.periodIndex++;
-  // Reset team fouls on new quarter
-  state.home.teamFouls = 0;
-  state.away.teamFouls = 0;
+  // Load saved fouls for this period if they exist (returning to a quarter), otherwise reset
+  if (state.foulHistory[state.periodIndex] !== undefined) {
+    state.home.teamFouls = state.foulHistory[state.periodIndex].home;
+    state.away.teamFouls = state.foulHistory[state.periodIndex].away;
+  } else {
+    state.home.teamFouls = 0;
+    state.away.teamFouls = 0;
+  }
   updatePeriod();
   updateTeamFouls();
   saveState();
@@ -82,10 +91,17 @@ function nextPeriod() {
 
 function prevPeriod() {
   if (state.periodIndex > 0) {
+    // Save current quarter's fouls before going back
+    state.foulHistory[state.periodIndex] = {
+      home: state.home.teamFouls,
+      away: state.away.teamFouls
+    };
     state.periodIndex--;
-    // Reset team fouls on quarter change
-    state.home.teamFouls = 0;
-    state.away.teamFouls = 0;
+    // Restore the previous quarter's saved fouls
+    if (state.foulHistory[state.periodIndex] !== undefined) {
+      state.home.teamFouls = state.foulHistory[state.periodIndex].home;
+      state.away.teamFouls = state.foulHistory[state.periodIndex].away;
+    }
     updatePeriod();
     updateTeamFouls();
     saveState();
@@ -107,7 +123,7 @@ function showPeriodChangeModal() {
   else periodName = 'Overtime ' + (state.periodIndex - 3);
 
   document.getElementById('periodChangeTitle').textContent = periodName;
-  document.getElementById('periodChangeMessage').textContent = 'Team fouls reset. Ready to continue?';
+  document.getElementById('periodChangeMessage').textContent = 'Ready to continue?';
   document.getElementById('periodHomeTeam').textContent = state.homeName;
   document.getElementById('periodAwayTeam').textContent = state.awayName;
   document.getElementById('periodHomeScore').textContent = state.home.score;
@@ -232,6 +248,15 @@ function addPlayer(team) {
     return;
   }
 
+  // Check for duplicate jersey number on the same team
+  var duplicate = state[team].players.some(function(p) { return p.number === num; });
+  if (duplicate) {
+    showToast('Jersey #' + num + ' is already taken on this team', 'error');
+    numInput.focus();
+    numInput.select();
+    return;
+  }
+
   state[team].players.push(makePlayer(name, num));
   nameInput.value = '';
   numInput.value = '';
@@ -321,7 +346,7 @@ function recordAction(type) {
   var player = state[team].players[index];
   if (!player) return;
 
-  var action = { team: team, index: index, type: type, timestamp: Date.now() };
+  var action = { team: team, index: index, type: type, timestamp: Date.now(), playerName: player.name, playerNumber: player.number };
   var points = 0;
 
   switch (type) {
@@ -339,9 +364,7 @@ function recordAction(type) {
     case 'to':   player.to++; break;
     case 'fls':
       player.fls++;
-      if (state[team].teamFouls < 5) {
-        state[team].teamFouls++;
-      }
+      state[team].teamFouls++;
       updateTeamFouls();
 
       // Warning when reaching team foul limit
@@ -383,23 +406,41 @@ function undoAction() {
   }
   var action = state.history.pop();
   var player = state[action.team].players[action.index];
-  if (!player) { saveState(); return; }
+
+  // Verify player identity matches (index may have shifted after player removal)
+  if (!player || (action.playerName && (player.name !== action.playerName || player.number !== action.playerNumber))) {
+    // Try to find the correct player by name+number
+    player = null;
+    var players = state[action.team].players;
+    for (var i = 0; i < players.length; i++) {
+      if (players[i].name === action.playerName && players[i].number === action.playerNumber) {
+        player = players[i];
+        break;
+      }
+    }
+  }
+
+  if (!player) {
+    showToast('Player no longer exists — undo skipped', 'warning');
+    saveState();
+    return;
+  }
 
   switch (action.type) {
-    case 'pts2': player.pts2--; player.pts -= 2; state[action.team].score -= 2; break;
-    case 'pts3': player.pts3--; player.pts -= 3; state[action.team].score -= 3; break;
-    case 'ft':   player.ft--;  player.pts -= 1; state[action.team].score -= 1; break;
-    case 'miss2': player.miss2--; break;
-    case 'miss3': player.miss3--; break;
-    case 'missft': player.missft--; break;
-    case 'ast':  player.ast--; break;
-    case 'oreb': player.oreb--; break;
-    case 'dreb': player.dreb--; break;
-    case 'stl':  player.stl--; break;
-    case 'blk':  player.blk--; break;
-    case 'to':   player.to--; break;
+    case 'pts2': player.pts2 = Math.max(0, player.pts2 - 1); player.pts = Math.max(0, player.pts - 2); state[action.team].score = Math.max(0, state[action.team].score - 2); break;
+    case 'pts3': player.pts3 = Math.max(0, player.pts3 - 1); player.pts = Math.max(0, player.pts - 3); state[action.team].score = Math.max(0, state[action.team].score - 3); break;
+    case 'ft':   player.ft = Math.max(0, player.ft - 1);  player.pts = Math.max(0, player.pts - 1); state[action.team].score = Math.max(0, state[action.team].score - 1); break;
+    case 'miss2': player.miss2 = Math.max(0, player.miss2 - 1); break;
+    case 'miss3': player.miss3 = Math.max(0, player.miss3 - 1); break;
+    case 'missft': player.missft = Math.max(0, player.missft - 1); break;
+    case 'ast':  player.ast = Math.max(0, player.ast - 1); break;
+    case 'oreb': player.oreb = Math.max(0, player.oreb - 1); break;
+    case 'dreb': player.dreb = Math.max(0, player.dreb - 1); break;
+    case 'stl':  player.stl = Math.max(0, player.stl - 1); break;
+    case 'blk':  player.blk = Math.max(0, player.blk - 1); break;
+    case 'to':   player.to = Math.max(0, player.to - 1); break;
     case 'fls':
-      player.fls--;
+      player.fls = Math.max(0, player.fls - 1);
       if (state[action.team].teamFouls > 0) {
         state[action.team].teamFouls--;
       }
@@ -437,6 +478,7 @@ function newGame() {
   state.away.teamFouls = 0;
   state.periodIndex = 0;
   state.history = [];
+  state.foulHistory = {};
   state.activePlayer = null;
 
   // Clear all players
@@ -984,7 +1026,7 @@ function placeElements(targetEl, step) {
 
   // Position spotlight hole
   var hole = document.getElementById('spotlightHole');
-  hole.style.top = (rect.top + window.scrollY - pad) + 'px';
+  hole.style.top = (rect.top - pad) + 'px';
   hole.style.left = (rect.left - pad) + 'px';
   hole.style.width = (rect.width + pad * 2) + 'px';
   hole.style.height = (rect.height + pad * 2) + 'px';
@@ -1032,7 +1074,7 @@ function placeElements(targetEl, step) {
   arrowLeft = Math.max(16, Math.min(arrowLeft, ttRect.width - 30));
 
   if (step.position === 'bottom') {
-    var ttTop = rect.bottom + window.scrollY + pad + 14;
+    var ttTop = rect.bottom + pad + 14;
     tooltip.style.top = ttTop + 'px';
     tooltip.style.left = ttLeft + 'px';
     arrow.classList.add('top');
@@ -1040,9 +1082,9 @@ function placeElements(targetEl, step) {
     arrow.style.top = '';
     arrow.style.bottom = '';
   } else {
-    var ttTop2 = rect.top + window.scrollY - ttRect.height - pad - 14;
-    if (ttTop2 < window.scrollY + 8) {
-      ttTop2 = rect.bottom + window.scrollY + pad + 14;
+    var ttTop2 = rect.top - ttRect.height - pad - 14;
+    if (ttTop2 < 8) {
+      ttTop2 = rect.bottom + pad + 14;
       arrow.classList.add('top');
     } else {
       arrow.classList.add('bottom');
@@ -1122,7 +1164,18 @@ function init() {
   renderTimeouts('home');
   renderTimeouts('away');
   updateTeamFouls();
-  showStats(state.statsView);
+  document.getElementById('homePanelTitle').textContent = state.homeName + ' ROSTER';
+  document.getElementById('awayPanelTitle').textContent = state.awayName + ' ROSTER';
+  document.getElementById('statsHomeBtn').textContent = state.homeName;
+  document.getElementById('statsAwayBtn').textContent = state.awayName;
+
+  // Restore correct stats toggle button on init
+  var statsBtn;
+  if (state.statsView === 'away') statsBtn = document.getElementById('statsAwayBtn');
+  else if (state.statsView === 'both') statsBtn = document.getElementById('statsBothBtn');
+  else statsBtn = document.getElementById('statsHomeBtn');
+  showStats(state.statsView, statsBtn);
+
   renderRunningScore();
   setupEnterKey('home');
   setupEnterKey('away');
@@ -1131,21 +1184,6 @@ function init() {
   if (state.runningScoreCollapsed) {
     document.getElementById('runningScoreContent').classList.add('collapsed');
     document.getElementById('runningScoreIcon').classList.add('collapsed');
-  }
-
-  document.getElementById('homePanelTitle').textContent = state.homeName + ' ROSTER';
-  document.getElementById('awayPanelTitle').textContent = state.awayName + ' ROSTER';
-  document.getElementById('statsHomeBtn').textContent = state.homeName;
-  document.getElementById('statsAwayBtn').textContent = state.awayName;
-
-  if (state.statsView === 'away') {
-    document.getElementById('statsHomeBtn').classList.remove('active');
-    document.getElementById('statsAwayBtn').classList.add('active');
-    document.getElementById('statsBothBtn').classList.remove('active');
-  } else if (state.statsView === 'both') {
-    document.getElementById('statsHomeBtn').classList.remove('active');
-    document.getElementById('statsAwayBtn').classList.remove('active');
-    document.getElementById('statsBothBtn').classList.add('active');
   }
 
   // Show tutorial on first visit
