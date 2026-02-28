@@ -930,6 +930,138 @@ function exportPDF() {
   }
 }
 
+/* ── EXPORT RUNNING SCORE PDF ── */
+function exportRunningScorePDF() {
+  var date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  var period = getPeriodLabel();
+  var homeWin = state.home.score > state.away.score;
+  var awayWin = state.away.score > state.home.score;
+  var tied = state.home.score === state.away.score;
+
+  // Filter only scoring plays
+  var scoringPlays = state.history.filter(function(action) {
+    return action.type === 'pts2' || action.type === 'pts3' || action.type === 'ft';
+  });
+
+  if (scoringPlays.length === 0) {
+    showToast('No scoring plays to export yet', 'warning');
+    return;
+  }
+
+  // Build play-by-play rows
+  var rows = '';
+  var playNumber = 1;
+
+  scoringPlays.forEach(function(action) {
+    var player = state[action.team].players[action.index];
+    if (!player) return;
+
+    var teamName = action.team === 'home' ? state.homeName : state.awayName;
+    var actionLabel = '';
+    var points = 0;
+
+    if (action.type === 'pts2') { actionLabel = '2-Point Made'; points = 2; }
+    else if (action.type === 'pts3') { actionLabel = '3-Point Made'; points = 3; }
+    else if (action.type === 'ft') { actionLabel = 'Free Throw'; points = 1; }
+
+    // Calculate running score at this point
+    var runningHome = 0;
+    var runningAway = 0;
+
+    for (var i = 0; i < state.history.length; i++) {
+      var h = state.history[i];
+      if (h.timestamp > action.timestamp) break;
+
+      if (h.type === 'pts2') {
+        if (h.team === 'home') runningHome += 2;
+        else runningAway += 2;
+      } else if (h.type === 'pts3') {
+        if (h.team === 'home') runningHome += 3;
+        else runningAway += 3;
+      } else if (h.type === 'ft') {
+        if (h.team === 'home') runningHome += 1;
+        else runningAway += 1;
+      }
+    }
+
+    var teamColor = action.team === 'home' ? '#e8792b' : '#555';
+    var bgColor = action.team === 'home' ? '#fff5f0' : '#fafafa';
+
+    rows += '<tr style="background:' + bgColor + '">' +
+      '<td style="color:#888;font-weight:500">' + playNumber + '</td>' +
+      '<td style="text-align:left;font-weight:600;color:' + teamColor + '">' + esc(teamName) + '</td>' +
+      '<td style="text-align:left">#' + esc(player.number) + ' ' + esc(player.name) + '</td>' +
+      '<td>' + actionLabel + '</td>' +
+      '<td style="font-weight:700;color:' + teamColor + '">+' + points + '</td>' +
+      '<td style="font-weight:700;font-size:12px">' + runningHome + ' - ' + runningAway + '</td>' +
+      '</tr>';
+
+    playNumber++;
+  });
+
+  var resultText = tied ? 'TIE GAME' : (homeWin ? esc(state.homeName) + ' WIN' : esc(state.awayName) + ' WIN');
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+    '<title>Play-by-Play - ' + esc(state.homeName) + ' vs ' + esc(state.awayName) + '</title>' +
+    '<style>' +
+    '@media print { @page { margin: 0.5in; size: letter; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }' +
+    'body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 40px; color: #222; background: #fff; }' +
+    'table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 24px; }' +
+    'table td, table th { padding: 8px 10px; text-align: center; border-bottom: 1px solid #eee; }' +
+    'thead tr { background: #f5f5f5; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #888; font-weight: 600; }' +
+    '</style></head><body>' +
+
+    // Header
+    '<div style="text-align:center;margin-bottom:30px;padding-bottom:20px;border-bottom:3px solid #e8792b">' +
+    '<div style="font-size:10px;text-transform:uppercase;letter-spacing:3px;color:#888;margin-bottom:6px">Play-by-Play Report</div>' +
+    '<div style="font-size:11px;color:#aaa;margin-bottom:16px">' + date + ' &bull; Period: ' + period + '</div>' +
+
+    // Scoreboard
+    '<div style="display:flex;align-items:center;justify-content:center;gap:24px;margin:0 auto">' +
+    '<div style="text-align:center;min-width:120px">' +
+    '<div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#888;margin-bottom:4px">' + esc(state.homeName) + '</div>' +
+    '<div style="font-size:56px;font-weight:800;line-height:1;color:' + (homeWin ? '#e8792b' : '#222') + '">' + state.home.score + '</div>' +
+    '</div>' +
+    '<div style="font-size:14px;color:#ccc;font-weight:300;letter-spacing:3px">VS</div>' +
+    '<div style="text-align:center;min-width:120px">' +
+    '<div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#888;margin-bottom:4px">' + esc(state.awayName) + '</div>' +
+    '<div style="font-size:56px;font-weight:800;line-height:1;color:' + (awayWin ? '#e8792b' : '#222') + '">' + state.away.score + '</div>' +
+    '</div>' +
+    '</div>' +
+
+    '<div style="margin-top:12px;font-size:13px;font-weight:700;color:#e8792b;letter-spacing:2px;text-transform:uppercase">' + resultText + '</div>' +
+    '<div style="margin-top:8px;font-size:11px;color:#aaa">Total Scoring Plays: ' + scoringPlays.length + '</div>' +
+    '</div>' +
+
+    // Play-by-play table
+    '<table>' +
+    '<thead><tr>' +
+    '<th style="width:50px">#</th>' +
+    '<th style="width:120px">Team</th>' +
+    '<th style="text-align:left">Player</th>' +
+    '<th>Action</th>' +
+    '<th>Pts</th>' +
+    '<th>Score</th>' +
+    '</tr></thead>' +
+    '<tbody>' + rows + '</tbody>' +
+    '</table>' +
+
+    // Footer
+    '<div style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:10px;color:#bbb;letter-spacing:1px">Generated by Basketball Scorer</div>' +
+
+    '<script>window.onload=function(){window.print()}<\/script>' +
+    '</body></html>';
+
+  var win = window.open('', '_blank');
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+    showToast('Play-by-play report opened — save as PDF from print dialog', 'success');
+  } else {
+    showToast('Pop-up blocked — please allow pop-ups', 'error');
+  }
+}
+
 /* ══════════════════════════════════════════
    SPOTLIGHT TUTORIAL
    ══════════════════════════════════════════ */
@@ -989,7 +1121,7 @@ var tutorialSteps = [
     target: '.stats-section',
     title: 'Box Score',
     text: 'Full player stats are shown here with FG%, 3P%, offensive/defensive rebounds, turnovers, and more. Toggle between Home and Away teams.',
-    tip: 'Export as CSV for spreadsheets, or PDF for a printable game report.',
+    tip: 'Export as CSV for spreadsheets, Box Score PDF for stats, or Play-by-Play PDF for running score.',
     position: 'top'
   },
   {
