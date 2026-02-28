@@ -77,6 +77,14 @@
       <div class="add-player-row">
         <input type="text" class="input-name" id="homePlayerName" placeholder="Player name" maxlength="24">
         <input type="text" class="input-number" id="homePlayerNum" placeholder="#" maxlength="3">
+        <select class="input-position" id="homePlayerPos">
+          <option value="">Pos</option>
+          <option value="PG">PG</option>
+          <option value="SG">SG</option>
+          <option value="SF">SF</option>
+          <option value="PF">PF</option>
+          <option value="C">C</option>
+        </select>
         <button class="btn-add" onclick="addPlayer('home')">Add</button>
       </div>
       <div class="player-list" id="homePlayerList"></div>
@@ -88,6 +96,14 @@
       <div class="add-player-row">
         <input type="text" class="input-name" id="awayPlayerName" placeholder="Player name" maxlength="24">
         <input type="text" class="input-number" id="awayPlayerNum" placeholder="#" maxlength="3">
+        <select class="input-position" id="awayPlayerPos">
+          <option value="">Pos</option>
+          <option value="PG">PG</option>
+          <option value="SG">SG</option>
+          <option value="SF">SF</option>
+          <option value="PF">PF</option>
+          <option value="C">C</option>
+        </select>
         <button class="btn-add" onclick="addPlayer('away')">Add</button>
       </div>
       <div class="player-list" id="awayPlayerList"></div>
@@ -207,6 +223,7 @@
         <tr>
           <th>Player</th>
           <th data-full="Jersey Number">#</th>
+          <th data-full="Position">POS</th>
           <th data-full="Points">PTS</th>
           <th data-full="Field Goals Made">FGM</th>
           <th data-full="Field Goals Attempted">FGA</th>

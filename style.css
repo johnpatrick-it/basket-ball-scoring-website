@@ -295,6 +295,18 @@ body::after{
 .add-player-row input::placeholder{color:var(--text-dim)}
 .input-name{flex:1;min-width:0}
 .input-number{width:60px}
+.input-position{
+  width:65px;
+  font-family:'DM Sans',sans-serif;
+  font-size:.85rem;
+  padding:8px 6px;
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  background:var(--bg);
+  color:var(--fg);
+  cursor:pointer;
+}
+.input-position:focus{border-color:var(--orange);outline:none}
 .btn-add{
   font-family:'DM Sans',sans-serif;
   font-size:.8rem;

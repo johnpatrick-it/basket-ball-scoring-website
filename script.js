@@ -17,9 +17,9 @@ var state = {
   runningScoreCollapsed: false
 };
 
-function makePlayer(name, number) {
+function makePlayer(name, number, position) {
   return {
-    name: name, number: number,
+    name: name, number: number, position: position || '',
     pts: 0, pts2: 0, pts3: 0, ft: 0,
     miss2: 0, miss3: 0, missft: 0,
     ast: 0, oreb: 0, dreb: 0,
@@ -233,8 +233,10 @@ function initTeamNames() {
 function addPlayer(team) {
   var nameInput = document.getElementById(team + 'PlayerName');
   var numInput = document.getElementById(team + 'PlayerNum');
+  var posInput = document.getElementById(team + 'PlayerPos');
   var name = nameInput.value.trim();
   var num = numInput.value.trim();
+  var position = posInput.value;
 
   if (!name) {
     showToast('Please enter a player name', 'error');
@@ -281,9 +283,10 @@ function addPlayer(team) {
     return;
   }
 
-  state[team].players.push(makePlayer(name, num));
+  state[team].players.push(makePlayer(name, sanitizedNum, position));
   nameInput.value = '';
   numInput.value = '';
+  posInput.value = '';
   nameInput.focus();
   renderPlayers(team);
   renderStats();
@@ -655,7 +658,7 @@ function renderStats() {
     // Show single team
     var players = state[view].players;
     if (players.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;color:var(--text-dim);padding:20px;font-style:italic">No players added yet</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="18" style="text-align:center;color:var(--text-dim);padding:20px;font-style:italic">No players added yet</td></tr>';
       return;
     }
     renderTeamStats(view, tbody, false);
@@ -674,7 +677,7 @@ function renderTeamStats(team, tbody, addHeader) {
   if (addHeader) {
     var headerRow = document.createElement('tr');
     headerRow.className = 'team-header-row';
-    headerRow.innerHTML = '<td colspan="17" style="text-align:left;font-weight:700;font-size:.9rem;color:var(--orange);padding:10px 8px;background:var(--surface2)">' + teamName + ' (Score: ' + state[team].score + ')</td>';
+    headerRow.innerHTML = '<td colspan="18" style="text-align:left;font-weight:700;font-size:.9rem;color:var(--orange);padding:10px 8px;background:var(--surface2)">' + teamName + ' (Score: ' + state[team].score + ')</td>';
     tbody.appendChild(headerRow);
   }
 
@@ -693,6 +696,7 @@ function renderTeamStats(team, tbody, addHeader) {
     tr.innerHTML =
       '<td>' + esc(p.name) + '</td>' +
       '<td>' + esc(p.number) + '</td>' +
+      '<td>' + (p.position || '-') + '</td>' +
       '<td><strong>' + p.pts + '</strong></td>' +
       '<td>' + fgm + '</td>' +
       '<td>' + fga + '</td>' +
@@ -724,6 +728,7 @@ function renderTeamStats(team, tbody, addHeader) {
   tr.className = 'totals-row';
   tr.innerHTML =
     '<td>TOTALS</td>' +
+    '<td></td>' +
     '<td></td>' +
     '<td><strong>' + totals.pts + '</strong></td>' +
     '<td>' + totalFgm + '</td>' +
@@ -819,36 +824,44 @@ function exportPDF() {
     players.forEach(function(p) {
       var fgm = p.pts2 + p.pts3;
       var fga = fgm + p.miss2 + p.miss3;
+      var fgPct = fga > 0 ? ((fgm / fga) * 100).toFixed(1) : '0.0';
       var tpm = p.pts3;
       var tpa = p.pts3 + p.miss3;
+      var tpPct = tpa > 0 ? ((tpm / tpa) * 100).toFixed(1) : '0.0';
       var ftm = p.ft;
       var fta = p.ft + p.missft;
+      var ftPct = fta > 0 ? ((ftm / fta) * 100).toFixed(1) : '0.0';
       var reb = p.oreb + p.dreb;
       rows += '<tr>' +
         '<td style="text-align:left;font-weight:500">' + esc(p.name) + '</td>' +
         '<td style="color:#e8792b;font-weight:700">' + esc(p.number) + '</td>' +
+        '<td style="font-size:9px;color:#888">' + (p.position || '-') + '</td>' +
         '<td style="font-weight:700">' + p.pts + '</td>' +
-        '<td>' + fgm + '</td><td>' + fga + '</td>' +
-        '<td>' + tpm + '</td><td>' + tpa + '</td>' +
-        '<td>' + ftm + '</td><td>' + fta + '</td>' +
-        '<td>' + p.oreb + '</td><td>' + p.dreb + '</td><td>' + reb + '</td>' +
+        '<td>' + fgm + '/' + fga + '</td><td>' + fgPct + '%</td>' +
+        '<td>' + tpm + '/' + tpa + '</td><td>' + tpPct + '%</td>' +
+        '<td>' + ftm + '/' + fta + '</td><td>' + ftPct + '%</td>' +
+        '<td>' + reb + '</td>' +
         '<td>' + p.ast + '</td><td>' + p.stl + '</td><td>' + p.blk + '</td>' +
         '<td>' + p.to + '</td><td>' + p.fls + '</td></tr>';
       for (var k in totals) totals[k] += p[k];
     });
     var totalFgm = totals.pts2 + totals.pts3;
     var totalFga = totalFgm + totals.miss2 + totals.miss3;
+    var totalFgPct = totalFga > 0 ? ((totalFgm / totalFga) * 100).toFixed(1) : '0.0';
     var totalTpm = totals.pts3;
     var totalTpa = totals.pts3 + totals.miss3;
+    var totalTpPct = totalTpa > 0 ? ((totalTpm / totalTpa) * 100).toFixed(1) : '0.0';
     var totalFtm = totals.ft;
     var totalFta = totals.ft + totals.missft;
+    var totalFtPct = totalFta > 0 ? ((totalFtm / totalFta) * 100).toFixed(1) : '0.0';
     var totalReb = totals.oreb + totals.dreb;
     rows += '<tr style="font-weight:700;border-top:2px solid #e8792b;color:#e8792b;background:#e8792b0a">' +
-      '<td style="text-align:left">TOTALS</td><td></td>' +
-      '<td>' + totals.pts + '</td><td>' + totalFgm + '</td><td>' + totalFga + '</td>' +
-      '<td>' + totalTpm + '</td><td>' + totalTpa + '</td>' +
-      '<td>' + totalFtm + '</td><td>' + totalFta + '</td>' +
-      '<td>' + totals.oreb + '</td><td>' + totals.dreb + '</td><td>' + totalReb + '</td>' +
+      '<td style="text-align:left">TOTALS</td><td></td><td></td>' +
+      '<td>' + totals.pts + '</td>' +
+      '<td>' + totalFgm + '/' + totalFga + '</td><td>' + totalFgPct + '%</td>' +
+      '<td>' + totalTpm + '/' + totalTpa + '</td><td>' + totalTpPct + '%</td>' +
+      '<td>' + totalFtm + '/' + totalFta + '</td><td>' + totalFtPct + '%</td>' +
+      '<td>' + totalReb + '</td>' +
       '<td>' + totals.ast + '</td><td>' + totals.stl + '</td><td>' + totals.blk + '</td>' +
       '<td>' + totals.to + '</td><td>' + totals.fls + '</td></tr>';
 
@@ -856,11 +869,11 @@ function exportPDF() {
       '<h2 style="font-family:sans-serif;font-size:16px;color:#e8792b;margin:0 0 8px;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid #e8792b;padding-bottom:4px">' + esc(teamName) + ' &mdash; ' + state[team].score + ' PTS</h2>' +
       '<table style="width:100%;border-collapse:collapse;font-size:11px;font-family:sans-serif">' +
       '<thead><tr style="background:#f5f5f5;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888">' +
-      '<th style="text-align:left;padding:5px 6px">Player</th><th style="padding:5px 4px">#</th>' +
-      '<th style="padding:5px 4px">PTS</th><th style="padding:5px 4px">FGM</th><th style="padding:5px 4px">FGA</th>' +
-      '<th style="padding:5px 4px">3PM</th><th style="padding:5px 4px">3PA</th>' +
-      '<th style="padding:5px 4px">FTM</th><th style="padding:5px 4px">FTA</th>' +
-      '<th style="padding:5px 4px">OR</th><th style="padding:5px 4px">DR</th><th style="padding:5px 4px">REB</th>' +
+      '<th style="text-align:left;padding:5px 6px">Player</th><th style="padding:5px 4px">#</th><th style="padding:5px 4px">POS</th>' +
+      '<th style="padding:5px 4px">PTS</th><th style="padding:5px 4px">FG</th><th style="padding:5px 4px">FG%</th>' +
+      '<th style="padding:5px 4px">3PT</th><th style="padding:5px 4px">3P%</th>' +
+      '<th style="padding:5px 4px">FT</th><th style="padding:5px 4px">FT%</th>' +
+      '<th style="padding:5px 4px">REB</th>' +
       '<th style="padding:5px 4px">AST</th><th style="padding:5px 4px">STL</th><th style="padding:5px 4px">BLK</th>' +
       '<th style="padding:5px 4px">TO</th><th style="padding:5px 4px">FLS</th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table></div>';
