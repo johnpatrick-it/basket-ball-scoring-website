@@ -840,7 +840,7 @@ function exportPDF() {
         '<td>' + fgm + '/' + fga + '</td><td>' + fgPct + '%</td>' +
         '<td>' + tpm + '/' + tpa + '</td><td>' + tpPct + '%</td>' +
         '<td>' + ftm + '/' + fta + '</td><td>' + ftPct + '%</td>' +
-        '<td>' + reb + '</td>' +
+        '<td>' + p.oreb + '</td><td>' + p.dreb + '</td><td>' + reb + '</td>' +
         '<td>' + p.ast + '</td><td>' + p.stl + '</td><td>' + p.blk + '</td>' +
         '<td>' + p.to + '</td><td>' + p.fls + '</td></tr>';
       for (var k in totals) totals[k] += p[k];
@@ -861,7 +861,7 @@ function exportPDF() {
       '<td>' + totalFgm + '/' + totalFga + '</td><td>' + totalFgPct + '%</td>' +
       '<td>' + totalTpm + '/' + totalTpa + '</td><td>' + totalTpPct + '%</td>' +
       '<td>' + totalFtm + '/' + totalFta + '</td><td>' + totalFtPct + '%</td>' +
-      '<td>' + totalReb + '</td>' +
+      '<td>' + totals.oreb + '</td><td>' + totals.dreb + '</td><td>' + totalReb + '</td>' +
       '<td>' + totals.ast + '</td><td>' + totals.stl + '</td><td>' + totals.blk + '</td>' +
       '<td>' + totals.to + '</td><td>' + totals.fls + '</td></tr>';
 
@@ -873,7 +873,7 @@ function exportPDF() {
       '<th style="padding:5px 4px">PTS</th><th style="padding:5px 4px">FG</th><th style="padding:5px 4px">FG%</th>' +
       '<th style="padding:5px 4px">3PT</th><th style="padding:5px 4px">3P%</th>' +
       '<th style="padding:5px 4px">FT</th><th style="padding:5px 4px">FT%</th>' +
-      '<th style="padding:5px 4px">REB</th>' +
+      '<th style="padding:5px 4px">OR</th><th style="padding:5px 4px">DR</th><th style="padding:5px 4px">REB</th>' +
       '<th style="padding:5px 4px">AST</th><th style="padding:5px 4px">STL</th><th style="padding:5px 4px">BLK</th>' +
       '<th style="padding:5px 4px">TO</th><th style="padding:5px 4px">FLS</th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table></div>';
