@@ -13,7 +13,7 @@ var state = {
   history: [],
   foulHistory: {},
   activePlayer: null,
-  statsView: 'home',
+  statsView: 'both',
   runningScoreCollapsed: false
 };
 
