@@ -658,7 +658,7 @@ function renderStats() {
     // Show single team
     var players = state[view].players;
     if (players.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="18" style="text-align:center;color:var(--text-dim);padding:20px;font-style:italic">No players added yet</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="19" style="text-align:center;color:var(--text-dim);padding:20px;font-style:italic">No players added yet</td></tr>';
       return;
     }
     renderTeamStats(view, tbody, false);
@@ -677,7 +677,7 @@ function renderTeamStats(team, tbody, addHeader) {
   if (addHeader) {
     var headerRow = document.createElement('tr');
     headerRow.className = 'team-header-row';
-    headerRow.innerHTML = '<td colspan="18" style="text-align:left;font-weight:700;font-size:.9rem;color:var(--orange);padding:10px 8px;background:var(--surface2)">' + teamName + ' (Score: ' + state[team].score + ')</td>';
+    headerRow.innerHTML = '<td colspan="19" style="text-align:left;font-weight:700;font-size:.9rem;color:var(--orange);padding:10px 8px;background:var(--surface2)">' + teamName + ' (Score: ' + state[team].score + ')</td>';
     tbody.appendChild(headerRow);
   }
 
