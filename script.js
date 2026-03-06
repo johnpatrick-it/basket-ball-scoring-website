@@ -603,6 +603,22 @@ function newGame() {
 function updateScores() {
   document.getElementById('homeScore').textContent = state.home.score;
   document.getElementById('awayScore').textContent = state.away.score;
+
+  // Highlight winning team name
+  var homeNameEl = document.getElementById('homeName');
+  var awayNameEl = document.getElementById('awayName');
+
+  if (state.home.score > state.away.score) {
+    homeNameEl.classList.add('winning');
+    awayNameEl.classList.remove('winning');
+  } else if (state.away.score > state.home.score) {
+    awayNameEl.classList.add('winning');
+    homeNameEl.classList.remove('winning');
+  } else {
+    // Tied or no score
+    homeNameEl.classList.remove('winning');
+    awayNameEl.classList.remove('winning');
+  }
 }
 
 function flashScore(team) {

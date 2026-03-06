@@ -108,7 +108,8 @@ body::after{
   text-transform:uppercase;
   color:var(--text-dim);
   cursor:pointer;
-  border:none;background:none;
+  border:1px dashed var(--border);
+  background:var(--surface2);
   padding:4px 8px;
   border-radius:var(--radius-sm);
   transition:all .2s;
@@ -116,10 +117,22 @@ body::after{
   min-width:80px;
   text-align:center;
 }
-.team-name:hover{color:var(--text);background:var(--surface2)}
+.team-name:hover{
+  color:var(--text);
+  background:var(--surface3);
+  border-color:var(--orange);
+  border-style:solid;
+}
 .team-name:focus{
   outline:2px solid var(--orange);outline-offset:2px;
   color:var(--text);background:var(--surface2);
+}
+.team-name.winning{
+  color:var(--orange);
+  background:var(--orange-glow);
+  text-shadow:0 0 12px var(--orange-glow);
+  transform:scale(1.05);
+  font-weight:700;
 }
 .score-value{
   font-family:'Bebas Neue',sans-serif;
