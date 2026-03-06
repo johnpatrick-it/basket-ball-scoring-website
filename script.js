@@ -1,6 +1,7 @@
 /* ── STATE ── */
 var STORAGE_KEY = 'bball_scorer_v1';
 var TUTORIAL_KEY = 'bball_tutorial_seen';
+var WELCOME_KEY = 'bball_welcome_seen';
 var PERIODS = ['Q1','Q2','Q3','Q4'];
 
 var state = {
@@ -551,6 +552,39 @@ function closeModal() {
   document.getElementById('confirmModal').classList.remove('show');
 }
 
+/* ── WELCOME MODAL ── */
+function showWelcomeModal() {
+  document.getElementById('welcomeModal').classList.add('show');
+}
+
+function closeWelcomeModal() {
+  document.getElementById('welcomeModal').classList.remove('show');
+  try {
+    localStorage.setItem(WELCOME_KEY, 'true');
+  } catch(e) {}
+
+  // After closing welcome modal, check if tutorial should be shown
+  try {
+    if (!localStorage.getItem(TUTORIAL_KEY)) {
+      setTimeout(showTutorial, 800);
+    }
+  } catch(e) {}
+}
+
+function checkFirstVisit() {
+  try {
+    var hasSeenWelcome = localStorage.getItem(WELCOME_KEY);
+    if (!hasSeenWelcome) {
+      // Show welcome modal after a short delay for better UX
+      setTimeout(showWelcomeModal, 500);
+      return true; // Indicate that welcome modal will be shown
+    }
+    return false;
+  } catch(e) {
+    return false;
+  }
+}
+
 function newGame() {
   closeModal();
 
@@ -597,6 +631,9 @@ function newGame() {
   saveState();
 
   showToast('New game started — all data cleared', 'success');
+
+  // Show welcome modal for new game (tutorial will trigger when welcome closes if needed)
+  setTimeout(showWelcomeModal, 800);
 }
 
 /* ── SCORES ── */
@@ -1495,9 +1532,13 @@ function init() {
     document.getElementById('runningScoreIcon').classList.add('collapsed');
   }
 
-  // Show tutorial on first visit
+  // Check for first visit and show welcome modal
+  var isShowingWelcome = checkFirstVisit();
+
+  // Show tutorial on first visit ONLY if welcome modal is not being shown
+  // If welcome is showing, tutorial will be triggered when welcome closes
   try {
-    if (!localStorage.getItem(TUTORIAL_KEY)) {
+    if (!localStorage.getItem(TUTORIAL_KEY) && !isShowingWelcome) {
       setTimeout(showTutorial, 500);
     }
   } catch(e) {}

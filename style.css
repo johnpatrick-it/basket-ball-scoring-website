@@ -1362,3 +1362,158 @@ body::after{
 @media(min-width:1024px){
   .action-grid{grid-template-columns:repeat(4,1fr)}
 }
+
+/* ── WELCOME MODAL ── */
+.welcome-modal{animation:fadeIn .3s ease}
+.welcome-box{
+  max-width:500px;
+  padding:40px 32px;
+  position:relative;
+  animation:slideUp .3s ease;
+}
+.modal-close{
+  position:absolute;
+  top:16px;
+  right:16px;
+  background:none;
+  border:none;
+  font-size:1.8rem;
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:all .2s;
+  width:32px;
+  height:32px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+}
+.modal-close:hover{
+  color:var(--orange);
+  background:var(--surface3);
+  transform:rotate(90deg);
+}
+.welcome-logo{
+  margin:0 auto 24px;
+  width:120px;
+  height:120px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.logo-image{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  filter:drop-shadow(0 4px 20px var(--orange-glow));
+}
+.welcome-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:2.2rem;
+  letter-spacing:.08em;
+  color:var(--orange);
+  margin-bottom:12px;
+  text-transform:uppercase;
+}
+.welcome-message{
+  font-size:.95rem;
+  line-height:1.6;
+  color:var(--text);
+  margin-bottom:24px;
+}
+.welcome-credits{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px;
+  margin-bottom:24px;
+}
+.welcome-credits p{
+  font-size:.9rem;
+  color:var(--text-dim);
+  margin:0;
+  line-height:1.6;
+}
+.welcome-credits strong{
+  color:var(--orange);
+  font-weight:600;
+}
+.welcome-thanks{
+  margin-top:8px !important;
+  font-size:.85rem !important;
+  font-style:italic;
+}
+.welcome-actions{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+  margin-bottom:24px;
+}
+.welcome-btn{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  padding:12px 8px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--text);
+  font-size:.75rem;
+  text-decoration:none;
+  transition:all .2s;
+  cursor:pointer;
+}
+.welcome-btn .btn-icon{
+  font-size:1.5rem;
+}
+.welcome-btn:hover{
+  background:var(--surface3);
+  border-color:var(--orange);
+  transform:translateY(-2px);
+}
+.report-btn:hover{border-color:#e53935}
+.feedback-btn:hover{border-color:#fbc02d}
+.email-btn:hover{border-color:#43a047}
+.portfolio-btn:hover{border-color:#1e88e5}
+.btn-get-started{
+  width:100%;
+  font-family:'DM Sans',sans-serif;
+  font-size:1rem;
+  font-weight:700;
+  padding:14px 24px;
+  background:var(--orange);
+  color:#fff;
+  border:none;
+  border-radius:var(--radius);
+  cursor:pointer;
+  transition:all .2s;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.btn-get-started:hover{
+  background:var(--orange-dim);
+  transform:scale(1.02);
+}
+.btn-get-started:active{
+  transform:scale(.98);
+}
+
+@keyframes fadeIn{
+  from{opacity:0}
+  to{opacity:1}
+}
+@keyframes slideUp{
+  from{transform:translateY(30px);opacity:0}
+  to{transform:translateY(0);opacity:1}
+}
+
+@media(max-width:500px){
+  .welcome-box{padding:32px 24px;max-width:90vw}
+  .welcome-logo{width:100px;height:100px}
+  .welcome-title{font-size:1.8rem}
+  .welcome-message{font-size:.85rem}
+  .welcome-actions{grid-template-columns:1fr;gap:8px}
+  .welcome-btn{flex-direction:row;justify-content:center;padding:10px 16px}
+  .welcome-btn .btn-icon{font-size:1.2rem}
+}

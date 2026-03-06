@@ -340,6 +340,52 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<!-- Welcome Modal -->
+<div class="modal-overlay welcome-modal" id="welcomeModal">
+  <div class="modal-box welcome-box">
+    <button class="modal-close" onclick="closeWelcomeModal()" aria-label="Close">&times;</button>
+
+    <div class="welcome-logo">
+      <img src="logo.png" alt="Basketball Scorer Logo" class="logo-image">
+    </div>
+
+    <h2 class="welcome-title">Basketball Scorer</h2>
+
+    <p class="welcome-message">
+      Track your game stats in real-time with an easy-to-use scoring system.
+      Perfect for streetball, practice games, and tournaments!
+    </p>
+
+    <div class="welcome-credits">
+      <p>Created by <strong>John Patrick Haguimit</strong></p>
+      <p class="welcome-thanks">Thank you for trying Basketball Scorer! 🏀</p>
+    </div>
+
+    <div class="welcome-actions">
+      <a href="mailto:johnpatrickhaguimit@gmail.comcom?subject=Basketball%20Scorer%20-%20Bug%20Report" class="welcome-btn report-btn">
+        <span class="btn-icon">🐛</span>
+        Report Bug
+      </a>
+      <a href="mailto:johnpatrickhaguimit@gmail.com?subject=Basketball%20Scorer%20-%20Feedback" class="welcome-btn feedback-btn">
+        <span class="btn-icon">💡</span>
+        Send Feedback
+      </a>
+      <a href="mailto:johnpatrickhaguimit@gmail.com?subject=Basketball%20Scorer%20-%20Contact" class="welcome-btn email-btn">
+        <span class="btn-icon">📧</span>
+        Email Us
+      </a>
+      <a href="https://johnpatrick-it.github.io/portfolioV2/" target="_blank" rel="noopener noreferrer" class="welcome-btn portfolio-btn">
+        <span class="btn-icon">🌐</span>
+        More Projects
+      </a>
+    </div>
+
+    <button class="btn-get-started" onclick="closeWelcomeModal()">
+      Get Started
+    </button>
+  </div>
+</div>
+
 <script src="script.js"></script>
 </body>
 </html>
