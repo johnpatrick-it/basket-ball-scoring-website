@@ -219,6 +219,15 @@ body::after{
   0%,100%{transform:scale(1);opacity:1}
   50%{transform:scale(1.15);opacity:.9}
 }
+@keyframes highlight-panel{
+  0%{box-shadow:0 0 0 0 rgba(255,138,0,.6);border-color:var(--border)}
+  25%{box-shadow:0 0 20px 4px rgba(255,138,0,.6);border-color:var(--orange)}
+  50%{box-shadow:0 0 20px 4px rgba(255,138,0,.6);border-color:var(--orange)}
+  100%{box-shadow:0 0 0 0 rgba(255,138,0,.6);border-color:var(--border)}
+}
+.team-panel.highlight-needed{
+  animation:highlight-panel 1.2s ease-in-out;
+}
 .foul-status{
   font-size:.55rem;
   font-weight:700;

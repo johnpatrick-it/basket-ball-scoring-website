@@ -90,7 +90,7 @@ function nextPeriod() {
   showPeriodChangeModal();
 }
 
-function prevPeriod() {
+function prevPeriod(showModal) {
   if (state.periodIndex > 0) {
     // Save current quarter's fouls before going back
     state.foulHistory[state.periodIndex] = {
@@ -106,7 +106,9 @@ function prevPeriod() {
     updatePeriod();
     updateTeamFouls();
     saveState();
-    showPeriodChangeModal();
+    if (showModal !== false) {
+      showPeriodChangeModal();
+    }
   }
 }
 
@@ -134,6 +136,13 @@ function showPeriodChangeModal() {
 
 function closePeriodModal() {
   document.getElementById('periodModal').classList.remove('show');
+}
+
+function goBackPeriod() {
+  // Close the modal first
+  document.getElementById('periodModal').classList.remove('show');
+  // Go back to the previous period without showing the modal again
+  prevPeriod(false);
 }
 
 function updateTeamFouls() {
@@ -425,6 +434,16 @@ function updateActiveIndicator() {
 function recordAction(type) {
   if (!state.activePlayer) {
     showToast('Please select a player first', 'error');
+    // Highlight the player panels to draw attention
+    var homePanel = document.getElementById('homePanel');
+    var awayPanel = document.getElementById('awayPanel');
+    homePanel.classList.add('highlight-needed');
+    awayPanel.classList.add('highlight-needed');
+    // Remove the class after animation completes
+    setTimeout(function() {
+      homePanel.classList.remove('highlight-needed');
+      awayPanel.classList.remove('highlight-needed');
+    }, 1200);
     return;
   }
   var team = state.activePlayer.team;
@@ -1111,7 +1130,7 @@ function exportRunningScorePDF() {
   var date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   var period = getPeriodLabel();
   var homeWin = state.home.score > state.away.score;
-  var awayWin = state.away.score > state.home.score;
+  var awayWin = state.away.score > state.away.score;
   var tied = state.home.score === state.away.score;
 
   // Filter only scoring plays
@@ -1124,15 +1143,14 @@ function exportRunningScorePDF() {
     return;
   }
 
-  // Build play-by-play rows
-  var rows = '';
-  var playNumber = 1;
+  // Separate plays by team
+  var homePlays = [];
+  var awayPlays = [];
 
   scoringPlays.forEach(function(action) {
     var player = state[action.team].players[action.index];
     if (!player) return;
 
-    var teamName = action.team === 'home' ? state.homeName : state.awayName;
     var actionLabel = '';
     var points = 0;
 
@@ -1160,20 +1178,46 @@ function exportRunningScorePDF() {
       }
     }
 
-    var teamColor = action.team === 'home' ? '#e8792b' : '#555';
-    var bgColor = action.team === 'home' ? '#fff5f0' : '#fafafa';
+    var playData = {
+      player: player,
+      actionLabel: actionLabel,
+      points: points,
+      runningHome: runningHome,
+      runningAway: runningAway
+    };
 
-    rows += '<tr style="background:' + bgColor + '">' +
-      '<td style="color:#888;font-weight:500">' + playNumber + '</td>' +
-      '<td style="text-align:left;font-weight:600;color:' + teamColor + '">' + esc(teamName) + '</td>' +
-      '<td style="text-align:left">#' + esc(player.number) + ' ' + esc(player.name) + '</td>' +
-      '<td>' + actionLabel + '</td>' +
-      '<td style="font-weight:700;color:' + teamColor + '">+' + points + '</td>' +
-      '<td style="font-weight:700;font-size:12px">' + runningHome + ' - ' + runningAway + '</td>' +
-      '</tr>';
-
-    playNumber++;
+    if (action.team === 'home') {
+      homePlays.push(playData);
+    } else {
+      awayPlays.push(playData);
+    }
   });
+
+  // Build rows for home team
+  var homeRows = '';
+  for (var i = 0; i < homePlays.length; i++) {
+    var play = homePlays[i];
+    homeRows += '<tr style="background:#fff5f0">' +
+      '<td style="color:#888;font-weight:500">' + (i + 1) + '</td>' +
+      '<td style="text-align:left">#' + esc(play.player.number) + ' ' + esc(play.player.name) + '</td>' +
+      '<td>' + play.actionLabel + '</td>' +
+      '<td style="font-weight:700;color:#e8792b">+' + play.points + '</td>' +
+      '<td style="font-weight:700;font-size:11px">' + play.runningHome + '-' + play.runningAway + '</td>' +
+      '</tr>';
+  }
+
+  // Build rows for away team
+  var awayRows = '';
+  for (var i = 0; i < awayPlays.length; i++) {
+    var play = awayPlays[i];
+    awayRows += '<tr style="background:#fafafa">' +
+      '<td style="color:#888;font-weight:500">' + (i + 1) + '</td>' +
+      '<td style="text-align:left">#' + esc(play.player.number) + ' ' + esc(play.player.name) + '</td>' +
+      '<td>' + play.actionLabel + '</td>' +
+      '<td style="font-weight:700;color:#555">+' + play.points + '</td>' +
+      '<td style="font-weight:700;font-size:11px">' + play.runningHome + '-' + play.runningAway + '</td>' +
+      '</tr>';
+  }
 
   var resultText = tied ? 'TIE GAME' : (homeWin ? esc(state.homeName) + ' WIN' : esc(state.awayName) + ' WIN');
 
@@ -1182,13 +1226,18 @@ function exportRunningScorePDF() {
     '<style>' +
     '@media print { @page { margin: 0.5in; size: letter; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }' +
     'body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 40px; color: #222; background: #fff; }' +
-    'table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 24px; }' +
-    'table td, table th { padding: 8px 10px; text-align: center; border-bottom: 1px solid #eee; }' +
-    'thead tr { background: #f5f5f5; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #888; font-weight: 600; }' +
+    'table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 16px; }' +
+    'table td, table th { padding: 6px 8px; text-align: center; border-bottom: 1px solid #eee; }' +
+    'thead tr { background: #f5f5f5; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #888; font-weight: 600; }' +
+    '.two-column { display: flex; gap: 20px; margin-top: 20px; }' +
+    '.column { flex: 1; }' +
+    '.column-header { font-size: 14px; font-weight: 700; text-align: center; padding: 12px; margin-bottom: 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 2px; }' +
+    '.home-header { background: #fff5f0; color: #e8792b; border: 2px solid #e8792b; }' +
+    '.away-header { background: #fafafa; color: #555; border: 2px solid #ccc; }' +
     '</style></head><body>' +
 
     // Header
-    '<div style="text-align:center;margin-bottom:30px;padding-bottom:20px;border-bottom:3px solid #e8792b">' +
+    '<div style="text-align:center;margin-bottom:20px;padding-bottom:16px;border-bottom:3px solid #e8792b">' +
     '<div style="font-size:10px;text-transform:uppercase;letter-spacing:3px;color:#888;margin-bottom:6px">Play-by-Play Report</div>' +
     '<div style="font-size:11px;color:#aaa;margin-bottom:16px">' + date + ' &bull; Period: ' + period + '</div>' +
 
@@ -1209,18 +1258,40 @@ function exportRunningScorePDF() {
     '<div style="margin-top:8px;font-size:11px;color:#aaa">Total Scoring Plays: ' + scoringPlays.length + '</div>' +
     '</div>' +
 
-    // Play-by-play table
+    // Two-column layout for plays
+    '<div class="two-column">' +
+
+    // Home team column
+    '<div class="column">' +
+    '<div class="column-header home-header">' + esc(state.homeName) + ' (' + homePlays.length + ' plays)</div>' +
     '<table>' +
     '<thead><tr>' +
-    '<th style="width:50px">#</th>' +
-    '<th style="width:120px">Team</th>' +
+    '<th style="width:40px">#</th>' +
     '<th style="text-align:left">Player</th>' +
     '<th>Action</th>' +
     '<th>Pts</th>' +
     '<th>Score</th>' +
     '</tr></thead>' +
-    '<tbody>' + rows + '</tbody>' +
+    '<tbody>' + (homeRows || '<tr><td colspan="5" style="color:#aaa;padding:20px">No scoring plays</td></tr>') + '</tbody>' +
     '</table>' +
+    '</div>' +
+
+    // Away team column
+    '<div class="column">' +
+    '<div class="column-header away-header">' + esc(state.awayName) + ' (' + awayPlays.length + ' plays)</div>' +
+    '<table>' +
+    '<thead><tr>' +
+    '<th style="width:40px">#</th>' +
+    '<th style="text-align:left">Player</th>' +
+    '<th>Action</th>' +
+    '<th>Pts</th>' +
+    '<th>Score</th>' +
+    '</tr></thead>' +
+    '<tbody>' + (awayRows || '<tr><td colspan="5" style="color:#aaa;padding:20px">No scoring plays</td></tr>') + '</tbody>' +
+    '</table>' +
+    '</div>' +
+
+    '</div>' +
 
     // Footer
     '<div style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:10px;color:#bbb;letter-spacing:1px">Generated by Basketball Scorer</div>' +
